@@ -1,123 +1,173 @@
 "use client"
 
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import z from "zod"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { PasswordInput } from "@/components/ui/password-input"
+import type React from "react"
+import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
+import AnimatedInput from "./animated-input"
+import ValidationFeedback from "./validation-feedback"
 import { Button } from "@/components/ui/button"
-import { LoadingSwap } from "@/components/ui/loading-swap"
+import { validateEmail, validatePassword } from "@/lib/validation"
 import { authClient } from "@/lib/auth/auth-client"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { SocialAuthButtons } from "./social-auth-buttons"
 import { PasskeyButton } from "./passkey-button"
 
-const signInSchema = z.object({
-  email: z.email().min(1),
-  password: z.string().min(6),
-})
+interface SignInFormProps {
+  onToggle: () => void
+  onForgotPassword: () => void
+  onEmailVerification: (email: string) => void
+}
 
-type SignInForm = z.infer<typeof signInSchema>
+interface FormData {
+  email: string
+  password: string
+}
 
-export function SignInTab({
-  openEmailVerificationTab,
-  openForgotPassword,
-}: {
-  openEmailVerificationTab: (email: string) => void
-  openForgotPassword: () => void
-}) {
+interface ValidationErrors {
+  [key: string]: string | null
+}
+
+export default function SignInForm({ onToggle, onForgotPassword, onEmailVerification }: SignInFormProps) {
   const router = useRouter()
-  const form = useForm<SignInForm>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+  const [formData, setFormData] = useState<FormData>({
+    email: "",
+    password: "",
   })
+  const [errors, setErrors] = useState<ValidationErrors>({})
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const { isSubmitting } = form.formState
+  const isFormValid = formData.email && formData.password && !errors.email && !errors.password
 
-  async function handleSignIn(data: SignInForm) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    let error: string | null = null
+
+    switch (name) {
+      case "email":
+        error = validateEmail(value)
+        break
+      case "password":
+        error = validatePassword(value)
+        break
+    }
+
+    setErrors((prev) => ({ ...prev, [name]: error }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isFormValid) return
+
+    setIsLoading(true)
+
     await authClient.signIn.email(
-      { ...data, callbackURL: "/" },
+      { email: formData.email, password: formData.password, callbackURL: "/" },
       {
-        onError: error => {
+        onError: (error: { error: { code?: string; message?: string } }) => {
           if (error.error.code === "EMAIL_NOT_VERIFIED") {
-            openEmailVerificationTab(data.email)
+            onEmailVerification(formData.email)
           }
           toast.error(error.error.message || "Failed to sign in")
         },
+
         onSuccess: () => {
           router.push("/")
         },
-      }
+      },
     )
+
+    setIsLoading(false)
   }
 
   return (
-    <div className="space-y-4">
-      <Form {...form}>
-        <form className="space-y-4" onSubmit={form.handleSubmit(handleSignIn)}>
-          <FormField
-            control={form.control}
+    <div className="animate-fade-in">
+      <div className="mb-8 text-center">
+        <h1 className="text-balance text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
+        <p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <AnimatedInput
+            id="email"
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    autoComplete="email webauthn"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="email"
+            label="Email"
+            value={formData.email}
+            onChange={handleChange}
+            onBlur={handleBlur}
           />
+          {errors.email && <ValidationFeedback error={errors.email} />}
+        </div>
 
-          <FormField
-            control={form.control}
+        <div className="relative">
+          <AnimatedInput
+            id="password"
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex justify-between items-center">
-                  <FormLabel>Password</FormLabel>
-                  <Button
-                    onClick={openForgotPassword}
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="text-sm font-normal underline"
-                  >
-                    Forgot password?
-                  </Button>
-                </div>
-                <FormControl>
-                  <PasswordInput
-                    autoComplete="current-password webauthn"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type={showPassword ? "text" : "password"}
+            label="Password"
+            value={formData.password}
+            onChange={handleChange}
+            onBlur={handleBlur}
           />
+          {formData.password && (
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
+          {errors.password && <ValidationFeedback error={errors.password} />}
+        </div>
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            <LoadingSwap isLoading={isSubmitting}>Sign In</LoadingSwap>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-sm text-primary hover:text-primary/80 transition-colors"
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        <div className="pt-2">
+          <Button type="submit" disabled={!isFormValid || isLoading} className="w-full">
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
-        </form>
-      </Form>
-      <PasskeyButton />
+        </div>
+      </form>
+
+      <div className="mt-4">
+        <PasskeyButton />
+      </div>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs font-medium text-muted-foreground uppercase">OR</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <SocialAuthButtons />
+      </div>
+
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        Don't have an account?{" "}
+        <button onClick={onToggle} className="font-semibold text-primary hover:text-primary/80 transition-colors">
+          Sign up
+        </button>
+      </p>
     </div>
   )
 }
+

@@ -19,8 +19,8 @@ export const env = createEnv({
     RESEND_API_KEY: z.string(),
     ARCJET_API_KEY: z.string(),
 
-    POSTMARK_SERVER_TOKEN: z.string(),
-    POSTMARK_FROM_EMAIL: z.string().email(),
+    // POSTMARK_SERVER_TOKEN: z.string(),
+    // POSTMARK_FROM_EMAIL: z.string().email(),
 
     STRIPE_SECRET_KEY: z.string(),
     STRIPE_PUBLISHABLE_KEY: z.string(),
@@ -51,8 +51,8 @@ export const env = createEnv({
 
     ARCJET_API_KEY: process.env.ARCJET_API_KEY,
 
-    POSTMARK_SERVER_TOKEN: process.env.POSTMARK_SERVER_TOKEN,
-    POSTMARK_FROM_EMAIL: process.env.POSTMARK_FROM_EMAIL,
+    // POSTMARK_SERVER_TOKEN: process.env.POSTMARK_SERVER_TOKEN,
+    // POSTMARK_FROM_EMAIL: process.env.POSTMARK_FROM_EMAIL,
 
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,

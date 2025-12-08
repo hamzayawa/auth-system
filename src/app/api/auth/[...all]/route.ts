@@ -10,7 +10,7 @@ import arcjet, {
   SlidingWindowRateLimitOptions,
 } from "@arcjet/next"
 import { findIp } from "@arcjet/ip"
-import { de } from "zod/v4/locales"
+// import { de } from "zod/v4/locales"
 
 const aj = arcjet({
   key: process.env.ARCJET_API_KEY!,

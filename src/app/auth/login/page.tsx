@@ -1,111 +1,55 @@
 "use client"
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SignUpTab } from "./_components/sign-up-tab"
-import { SignInTab } from "./_components/sign-in-tab"
-import { Separator } from "@/components/ui/separator"
-import { SocialAuthButtons } from "./_components/social-auth-buttons"
+import SignUpForm from "./_components/sign-up-tab"
+import SignInForm from "./_components/sign-in-tab"
 import { useEffect, useState } from "react"
 import { authClient } from "@/lib/auth/auth-client"
 import { useRouter } from "next/navigation"
 import { EmailVerification } from "./_components/email-verification"
 import { ForgotPassword } from "./_components/forgot-password"
 
-type Tab = "signin" | "signup" | "email-verification" | "forgot-password"
+type View = "signin" | "signup" | "email-verification" | "forgot-password"
 
-export default function LoginPage() {
+export default function Home() {
   const router = useRouter()
+  const [currentView, setCurrentView] = useState<View>("signin")
   const [email, setEmail] = useState("")
-  const [selectedTab, setSelectedTab] = useState<Tab>("signin")
 
+  // Check if user is already logged in
   useEffect(() => {
-    authClient.getSession().then(session => {
-      if (session.data != null) router.push("/")
+    authClient.getSession().then((session: any) => {
+      if (session.data != null) router.push("/dashboard")
     })
   }, [router])
 
-  function openEmailVerificationTab(email: string) {
-    setEmail(email)
-    setSelectedTab("email-verification")
+  const openEmailVerification = (userEmail: string) => {
+    setEmail(userEmail)
+    setCurrentView("email-verification")
+  }
+
+  const renderView = () => {
+    switch (currentView) {
+      case "signin":
+        return (
+          <SignInForm
+            onToggle={() => setCurrentView("signup")}
+            onForgotPassword={() => setCurrentView("forgot-password")}
+            onEmailVerification={openEmailVerification}
+          />
+        )
+      case "signup":
+        return <SignUpForm onToggle={() => setCurrentView("signin")} onEmailVerification={openEmailVerification} />
+      case "email-verification":
+        return <EmailVerification email={email} onBackToSignIn={() => setCurrentView("signin")} />
+      case "forgot-password":
+        return <ForgotPassword onBackToSignIn={() => setCurrentView("signin")} />
+    }
   }
 
   return (
-    <Tabs
-      value={selectedTab}
-      onValueChange={t => setSelectedTab(t as Tab)}
-      className="max-auto w-full my-6 px-4"
-    >
-      {(selectedTab === "signin" || selectedTab === "signup") && (
-        <TabsList>
-          <TabsTrigger value="signin">Sign In</TabsTrigger>
-          <TabsTrigger value="signup">Sign Up</TabsTrigger>
-        </TabsList>
-      )}
-      <TabsContent value="signin">
-        <Card>
-          <CardHeader className="text-2xl font-bold">
-            <CardTitle>Sign In</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SignInTab
-              openEmailVerificationTab={openEmailVerificationTab}
-              openForgotPassword={() => setSelectedTab("forgot-password")}
-            />
-          </CardContent>
-
-          <Separator />
-
-          <CardFooter className="grid grid-cols-2 gap-3">
-            <SocialAuthButtons />
-          </CardFooter>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="signup">
-        <Card>
-          <CardHeader className="text-2xl font-bold">
-            <CardTitle>Sign Up</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SignUpTab openEmailVerificationTab={openEmailVerificationTab} />
-          </CardContent>
-
-          <Separator />
-
-          <CardFooter className="grid grid-cols-2 gap-3">
-            <SocialAuthButtons />
-          </CardFooter>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="email-verification">
-        <Card>
-          <CardHeader className="text-2xl font-bold">
-            <CardTitle>Verify Your Email</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EmailVerification email={email} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="forgot-password">
-        <Card>
-          <CardHeader className="text-2xl font-bold">
-            <CardTitle>Forgot Password</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ForgotPassword openSignInTab={() => setSelectedTab("signin")} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+    <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">{renderView()}</div>
+    </main>
   )
 }
+
