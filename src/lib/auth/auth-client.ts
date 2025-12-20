@@ -1,32 +1,28 @@
-import { createAuthClient } from "better-auth/react";
-import { auth } from "./auth";
 import {
-  inferAdditionalFields,
-  twoFactorClient,
-  adminClient,
-  organizationClient,
+	adminClient,
+	inferAdditionalFields,
+	organizationClient,
+	twoFactorClient,
 } from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 import { ac, admin, user } from "@/components/auth/permissions";
-import { stripeClient } from "@better-auth/stripe/client";
+import type { auth } from "./auth";
 
 export const authClient = createAuthClient({
-  plugins: [
-    inferAdditionalFields<typeof auth>(),
-    twoFactorClient({
-      onTwoFactorRedirect: () => {
-        window.location.href = "/auth/2fa";
-      },
-    }),
-    adminClient({
-      ac,
-      roles: {
-        admin,
-        user,
-      },
-    }),
-    organizationClient(),
-    stripeClient({
-      subscription: true,
-    }),
-  ],
+	plugins: [
+		inferAdditionalFields<typeof auth>(),
+		twoFactorClient({
+			onTwoFactorRedirect: () => {
+				window.location.href = "/auth/2fa";
+			},
+		}),
+		adminClient({
+			ac,
+			roles: {
+				admin,
+				user,
+			},
+		}),
+		organizationClient(),
+	],
 });

@@ -1,24 +1,32 @@
-import { Resend } from "resend"
+// lib/emails/send-email.ts
+import { Resend } from "resend";
+import { emailEnv } from "./env";
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+console.log("🔑 RESEND_API_KEY:", !!emailEnv.RESEND_API_KEY); // Add this
+console.log("📧 RESEND_FROM_EMAIL:", emailEnv.RESEND_FROM_EMAIL); // Add this
+
+const resend = new Resend(emailEnv.RESEND_API_KEY);
 
 export async function sendEmail({
-  to,
-  subject,
-  html,
-  text,
+	// Make async explicit
+	to,
+	subject,
+	html,
+	text,
 }: {
-  to: string
-  subject: string
-  html: string
-  text: string
+	to: string;
+	subject: string;
+	html: string;
+	text: string;
 }) {
-  return await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
-    to,
-    subject,
-    html,
-    text,
-  })
+	const result = await resend.emails.send({
+		// Ensure await
+		from: emailEnv.RESEND_FROM_EMAIL,
+		to,
+		subject,
+		html,
+		text,
+	});
+	console.log("📤 Resend response:", result); // Add this
+	return result;
 }
-
