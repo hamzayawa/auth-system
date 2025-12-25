@@ -4,19 +4,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
-	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { LoadingSwap } from "@/components/ui/loading-swap";
-import { PasswordInput } from "@/components/ui/password-input";
+import AnimatedInput from "@/components/auth/animated-input";
 import { authClient } from "@/lib/auth/auth-client";
+import { Button } from "@/components/ui/button";
+import { SpinnerCustom } from "@/components/ui/spinner";
+import { useId } from "react";
 
 const changePasswordSchema = z.object({
 	currentPassword: z.string().min(1),
@@ -37,6 +36,10 @@ export function ChangePasswordForm() {
 	});
 
 	const { isSubmitting } = form.formState;
+
+	// Generate unique IDs
+	const currentPasswordId = useId();
+	const newPasswordId = useId();
 
 	async function handlePasswordChange(data: ChangePasswordForm) {
 		await authClient.changePassword(data, {
@@ -61,9 +64,14 @@ export function ChangePasswordForm() {
 					name="currentPassword"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Current Password</FormLabel>
 							<FormControl>
-								<PasswordInput {...field} />
+								<AnimatedInput
+									{...field}
+									id={currentPasswordId}
+									name="currentPassword"
+									type="password"
+									label="Current Password"
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -75,35 +83,36 @@ export function ChangePasswordForm() {
 					name="newPassword"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>New Password</FormLabel>
 							<FormControl>
-								<PasswordInput {...field} />
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
-					name="revokeOtherSessions"
-					render={({ field }) => (
-						<FormItem className="flex">
-							<FormControl>
-								<Checkbox
-									checked={field.value}
-									onCheckedChange={field.onChange}
+								<AnimatedInput
+									{...field}
+									id={newPasswordId}
+									name="newPassword"
+									type="password"
+									label="New Password"
 								/>
 							</FormControl>
-							<FormLabel>Log out other sessions</FormLabel>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
-				<Button type="submit" disabled={isSubmitting} className="w-full">
-					<LoadingSwap isLoading={isSubmitting}>Change Password</LoadingSwap>
-				</Button>
+				<div className="pt-2">
+					<Button
+						type="submit"
+						disabled={isSubmitting}
+						className="w-full flex items-center justify-center gap-2"
+					>
+						{isSubmitting ? (
+							<>
+								<SpinnerCustom />
+								<span>Changing password...</span>
+							</>
+						) : (
+							"Change Password"
+						)}
+					</Button>
+				</div>
 			</form>
 		</Form>
 	);

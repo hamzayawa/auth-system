@@ -14,10 +14,10 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { LoadingSwap } from "@/components/ui/loading-swap";
-import { NumberInput } from "@/components/ui/number-input";
+import AnimatedInput from "@/components/auth/animated-input";
 import { authClient } from "@/lib/auth/auth-client";
+import { SpinnerCustom } from "@/components/ui/spinner";
+import { useId } from "react";
 
 const profileUpdateSchema = z.object({
 	name: z.string().min(1),
@@ -33,8 +33,6 @@ export function ProfileUpdateForm({
 	user: {
 		email: string;
 		name: string;
-		favoriteNumber: number;
-		[key: string]: any; // Allow additional properties from Better Auth
 	};
 }) {
 	const router = useRouter();
@@ -43,11 +41,13 @@ export function ProfileUpdateForm({
 		defaultValues: {
 			name: user.name,
 			email: user.email,
-			favoriteNumber: user.favoriteNumber,
 		},
 	});
 
 	const { isSubmitting } = form.formState;
+
+	const nameId = useId();
+	const emailId = useId();
 
 	async function handleProfileUpdate(data: ProfileUpdateForm) {
 		const promises = [
@@ -96,9 +96,15 @@ export function ProfileUpdateForm({
 					name="name"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Name</FormLabel>
+							<FormLabel htmlFor={nameId}>Name</FormLabel>
 							<FormControl>
-								<Input {...field} />
+								<AnimatedInput
+									{...field}
+									id={nameId}
+									name="name"
+									type="text"
+									label="Name"
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -110,31 +116,34 @@ export function ProfileUpdateForm({
 					name="email"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Email</FormLabel>
+							<FormLabel htmlFor={emailId}>Email</FormLabel>
 							<FormControl>
-								<Input type="email" {...field} />
+								<AnimatedInput
+									{...field}
+									id={emailId}
+									name="email"
+									type="email"
+									label="Email"
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
-				<FormField
-					control={form.control}
-					name="favoriteNumber"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Favorite Number</FormLabel>
-							<FormControl>
-								<NumberInput {...field} />
-							</FormControl>
-							<FormMessage />
-						</FormItem>
+				<Button
+					type="submit"
+					disabled={isSubmitting}
+					className="w-full flex items-center justify-center gap-2"
+				>
+					{isSubmitting ? (
+						<>
+							<SpinnerCustom />
+							<span>Updating...</span>
+						</>
+					) : (
+						"Update Profile"
 					)}
-				/>
-
-				<Button type="submit" disabled={isSubmitting} className="w-full">
-					<LoadingSwap isLoading={isSubmitting}>Update Profile</LoadingSwap>
 				</Button>
 			</form>
 		</Form>

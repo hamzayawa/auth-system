@@ -13,8 +13,8 @@ import {
 	validateConfirmPassword,
 	validatePasswordWithStrength,
 } from "@/lib/validation";
-import AnimatedInput from "../login/_components/animated-input";
-import ValidationFeedback from "../login/_components/validation-feedback";
+import AnimatedInput from "@/components/auth/animated-input";
+import ValidationFeedback from "../../(auth)/_components/validation-feedback";
 
 interface FormData {
 	password: string;
@@ -146,7 +146,6 @@ export default function ResetPasswordPage() {
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="relative">
 						<AnimatedInput
-							id="password"
 							name="password"
 							type={showPassword ? "text" : "password"}
 							label="New Password"
@@ -172,7 +171,6 @@ export default function ResetPasswordPage() {
 
 					<div className="relative">
 						<AnimatedInput
-							id="confirmPassword"
 							name="confirmPassword"
 							type={showConfirmPassword ? "text" : "password"}
 							label="Confirm Password"

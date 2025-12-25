@@ -8,10 +8,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import { validateEmail, validatePassword } from "@/lib/validation";
-import AnimatedInput from "./animated-input";
-import { SocialAuthButtons } from "./social-auth-buttons";
-import ValidationFeedback from "./validation-feedback";
-
+import AnimatedInput from "@/components/auth/animated-input";
+import { SocialAuthButtons } from "../../_components/social-auth-buttons";
+import ValidationFeedback from "../../_components/validation-feedback";
+import { SpinnerCustom } from "@/components/ui/spinner";
 // import { PasskeyButton } from "./passkey-button"
 
 interface SignInFormProps {
@@ -30,8 +30,8 @@ interface ValidationErrors {
 }
 
 export default function SignInForm({
-	onToggle,
-	onForgotPassword,
+	// onToggle,
+	// onForgotPassword,
 	onEmailVerification,
 }: SignInFormProps) {
 	const router = useRouter();
@@ -107,7 +107,6 @@ export default function SignInForm({
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div>
 					<AnimatedInput
-						id="email"
 						name="email"
 						type="email"
 						label="Email"
@@ -120,7 +119,6 @@ export default function SignInForm({
 
 				<div className="relative">
 					<AnimatedInput
-						id="password"
 						name="password"
 						type={showPassword ? "text" : "password"}
 						label="Password"
@@ -142,22 +140,28 @@ export default function SignInForm({
 				</div>
 
 				<div className="flex justify-end">
-					<button
-						type="button"
-						onClick={onForgotPassword}
+					<a
+						href="/forgot-password"
 						className="text-sm text-primary hover:text-primary/80 transition-colors"
 					>
-						Forgot password?
-					</button>
+						Forgot Password
+					</a>
 				</div>
 
 				<div className="pt-2">
 					<Button
 						type="submit"
 						disabled={!isFormValid || isLoading}
-						className="w-full"
+						className="w-full flex items-center justify-center gap-2"
 					>
-						{isLoading ? "Signing in..." : "Sign In"}
+						{isLoading ? (
+							<>
+								<SpinnerCustom />
+								<span>Signing in...</span>
+							</>
+						) : (
+							"Sign In"
+						)}
 					</Button>
 				</div>
 			</form>
@@ -180,12 +184,12 @@ export default function SignInForm({
 
 			<p className="mt-6 text-center text-sm text-muted-foreground">
 				Don't have an account?{" "}
-				<button
-					onClick={onToggle}
+				<a
+					href="/login"
 					className="font-semibold text-primary hover:text-primary/80 transition-colors"
 				>
 					Sign up
-				</button>
+				</a>
 			</p>
 		</div>
 	);

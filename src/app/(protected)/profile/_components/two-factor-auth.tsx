@@ -16,10 +16,10 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { LoadingSwap } from "@/components/ui/loading-swap";
-import { PasswordInput } from "@/components/ui/password-input";
 import { authClient } from "@/lib/auth/auth-client";
+import AnimatedInput from "@/components/auth/animated-input";
+import { SpinnerCustom } from "@/components/ui/spinner";
+import { useId } from "react";
 
 const twoFactorAuthSchema = z.object({
 	password: z.string().min(1),
@@ -42,6 +42,7 @@ export function TwoFactorAuth({ isEnabled }: { isEnabled: boolean }) {
 	});
 
 	const { isSubmitting } = form.formState;
+	const passwordId = useId();
 
 	async function handleDisableTwoFactorAuth(data: TwoFactorAuthForm) {
 		await authClient.twoFactor.disable(
@@ -96,9 +97,15 @@ export function TwoFactorAuth({ isEnabled }: { isEnabled: boolean }) {
 					name="password"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Password</FormLabel>
+							<FormLabel htmlFor={passwordId}>Password</FormLabel>
 							<FormControl>
-								<PasswordInput {...field} />
+								<AnimatedInput
+									{...field}
+									id={passwordId}
+									name="password"
+									type="password"
+									label="Password"
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -108,12 +115,19 @@ export function TwoFactorAuth({ isEnabled }: { isEnabled: boolean }) {
 				<Button
 					type="submit"
 					disabled={isSubmitting}
-					className="w-full"
+					className="w-full flex items-center justify-center gap-2"
 					variant={isEnabled ? "destructive" : "default"}
 				>
-					<LoadingSwap isLoading={isSubmitting}>
-						{isEnabled ? "Disable 2FA" : "Enable 2FA"}
-					</LoadingSwap>
+					{isSubmitting ? (
+						<>
+							<SpinnerCustom />
+							<span>{isEnabled ? "Disabling 2FA..." : "Enabling 2FA..."}</span>
+						</>
+					) : isEnabled ? (
+						"Disable 2FA"
+					) : (
+						"Enable 2FA"
+					)}
 				</Button>
 			</form>
 		</Form>
@@ -165,8 +179,8 @@ function QRCodeVerify({
 					your account.
 				</p>
 				<div className="grid grid-cols-2 gap-2 mb-4">
-					{backupCodes.map((code, index) => (
-						<div key={index} className="font-mono text-sm">
+					{backupCodes.map((code) => (
+						<div key={code} className="font-mono text-sm">
 							{code}
 						</div>
 					))}
@@ -193,15 +207,31 @@ function QRCodeVerify({
 							<FormItem>
 								<FormLabel>Code</FormLabel>
 								<FormControl>
-									<Input {...field} />
+									<AnimatedInput
+										{...field}
+										name="token"
+										type="text"
+										label="Code"
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
 						)}
 					/>
 
-					<Button type="submit" disabled={isSubmitting} className="w-full">
-						<LoadingSwap isLoading={isSubmitting}>Submit Code</LoadingSwap>
+					<Button
+						type="submit"
+						disabled={isSubmitting}
+						className="w-full flex items-center justify-center gap-2"
+					>
+						{isSubmitting ? (
+							<>
+								<SpinnerCustom />
+								<span>Submitting...</span>
+							</>
+						) : (
+							"Submit Code"
+						)}
 					</Button>
 				</form>
 			</Form>

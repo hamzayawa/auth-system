@@ -14,9 +14,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { LoadingSwap } from "@/components/ui/loading-swap";
 import { authClient } from "@/lib/auth/auth-client";
+import AnimatedInput from "../../login/_components/animated-input";
+import { SpinnerCustom } from "@/components/ui/spinner";
 
 const totpSchema = z.object({
 	code: z.string().length(6),
@@ -59,15 +59,31 @@ export function TotpForm() {
 						<FormItem>
 							<FormLabel>Code</FormLabel>
 							<FormControl>
-								<Input {...field} />
+								<AnimatedInput
+									{...field}
+									name="code"
+									type="text"
+									label="Code"
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
-				<Button type="submit" disabled={isSubmitting} className="w-full">
-					<LoadingSwap isLoading={isSubmitting}>Verify</LoadingSwap>
+				<Button
+					type="submit"
+					disabled={isSubmitting}
+					className="w-full flex items-center justify-center gap-2"
+				>
+					{isSubmitting ? (
+						<>
+							<SpinnerCustom />
+							<span>Verifying...</span>
+						</>
+					) : (
+						"Verify"
+					)}
 				</Button>
 			</form>
 		</Form>

@@ -10,9 +10,10 @@ import arcjet, {
 } from "@arcjet/next";
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/lib/auth/auth";
+import { env } from "@/lib/env";
 
 const aj = arcjet({
-	key: process.env.ARCJET_API_KEY!,
+	key: env.ARCJET_API_KEY,
 	characteristics: ["userIdOrIp"],
 	rules: [shield({ mode: "LIVE" })],
 });
@@ -83,7 +84,7 @@ async function checkArcjet(request: Request, body: unknown) {
 	const session = await auth.api.getSession({ headers: request.headers });
 	const userIdOrIp = (session?.user.id ?? findIp(request)) || "127.0.0.1";
 
-	if (request.url.endsWith("/auth/sign-up")) {
+	if (request.url.endsWith("/sign-up")) {
 		if (
 			body &&
 			typeof body === "object" &&

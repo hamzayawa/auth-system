@@ -12,7 +12,9 @@ export default function VerifyEmailPage() {
 			<div className="w-full max-w-md">
 				<EmailVerification
 					email={email}
-					onBackToSignIn={() => (window.location.href = "/auth/login")}
+					onBackToSignIn={() => {
+						window.location.href = "/login";
+					}}
 				/>
 			</div>
 		</main>

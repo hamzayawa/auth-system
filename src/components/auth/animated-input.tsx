@@ -1,10 +1,10 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 interface AnimatedInputProps {
-	id: string;
+	id?: string;
 	name: string;
 	type: string;
 	label: string;
@@ -22,31 +22,37 @@ export default function AnimatedInput({
 	onChange,
 	onBlur,
 }: AnimatedInputProps) {
+	const generatedId = useId();
+	const inputId = id ?? generatedId;
+
 	const [isFocused, setIsFocused] = useState(false);
 	const isLabelFloated = isFocused || value.length > 0;
 
-	const labelLetters = label.split("").map((letter, index) => (
-		<span
-			key={index}
-			style={{
-				display: "inline-block",
-				transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-				transitionDelay: isLabelFloated ? `${index * 0.05}s` : "0s",
-				transform: isLabelFloated
-					? "translateY(-20px) scale(0.85)"
-					: "translateY(0) scale(1)",
-				opacity: isFocused ? 1 : 1,
-			}}
-		>
-			{letter === " " ? "\u00A0" : letter}
-		</span>
-	));
+	const labelLetters = label.split("").map((letter, i) => {
+		const key = `${inputId}-${letter}-${i}`;
+
+		return (
+			<span
+				key={key}
+				style={{
+					display: "inline-block",
+					transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+					transitionDelay: isLabelFloated ? `${i * 0.05}s` : "0s",
+					transform: isLabelFloated
+						? "translateY(-20px) scale(0.85)"
+						: "translateY(0) scale(1)",
+				}}
+			>
+				{letter === " " ? "\u00A0" : letter}
+			</span>
+		);
+	});
 
 	return (
 		<div className="relative pt-6">
 			<input
+				id={inputId}
 				type={type}
-				id={id}
 				name={name}
 				value={value}
 				onChange={onChange}
@@ -59,7 +65,7 @@ export default function AnimatedInput({
 				placeholder={label}
 			/>
 			<label
-				htmlFor={id}
+				htmlFor={inputId}
 				className="absolute left-0 top-6 text-muted-foreground text-sm font-medium"
 			>
 				{labelLetters}
