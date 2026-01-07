@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/drizzle/db";
 import { subscription } from "@/drizzle/schema";
+import { env } from "@/lib/env";
 import {
 	type FlutterwaveWebhookPayload,
 	processSuccessfulPayment,
@@ -9,7 +10,10 @@ import {
 	verifyWebhookSignature,
 } from "@/lib/flutterwave-server";
 
-const FLW_WEBHOOK_HASH = process.env.FLW_WEBHOOK_HASH!;
+const FLW_WEBHOOK_HASH = env.FLW_WEBHOOK_HASH;
+if (!FLW_WEBHOOK_HASH) {
+	throw new Error("FLW_WEBHOOK_HASH environment variable is required");
+}
 
 export async function POST(request: NextRequest) {
 	try {

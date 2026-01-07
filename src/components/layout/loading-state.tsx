@@ -1,17 +1,15 @@
 "use client";
 
 import gsap from "gsap";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface LoadingStateProps {
-	isLoading?: boolean;
 	text?: string;
 }
 
-export function LoadingState({
-	isLoading = true,
-	text = "YawaTech",
-}: LoadingStateProps) {
+export function LoadingState({ text = "YawaTech" }: LoadingStateProps) {
+	const [isLoading, setIsLoading] = useState(true);
+
 	const containerRef = useRef<HTMLDivElement>(null);
 	const spinnerRef = useRef<HTMLDivElement>(null);
 	const charactersRef = useRef<HTMLSpanElement[]>([]);
@@ -19,49 +17,74 @@ export function LoadingState({
 	const sectionRightRef = useRef<HTMLDivElement>(null);
 	const preloaderRef = useRef<HTMLDivElement>(null);
 
+	// Stable characters (no index as key)
+	const characters = useMemo(
+		() =>
+			Array.from(text).map((char) => ({
+				id: crypto.randomUUID(),
+				value: char,
+			})),
+		[text],
+	);
+
+	// 5-second loading timer
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setIsLoading(false);
+		}, 5000);
+
+		return () => clearTimeout(timer);
+	}, []);
+
+	// GSAP animations
 	useEffect(() => {
 		if (!isLoading) {
-			const timeline = gsap.timeline();
+			const tl = gsap.timeline();
 
-			timeline.to(charactersRef.current, { opacity: 0, duration: 0.4 }, 0);
-			timeline.to(
-				spinnerRef.current,
-				{ opacity: 0, scale: 0.8, duration: 0.4 },
-				0,
+			tl.to(charactersRef.current, { opacity: 0, duration: 0.3 }, 0);
+			tl.to(spinnerRef.current, { opacity: 0, scale: 0.8, duration: 0.3 }, 0);
+
+			tl.to(
+				sectionLeftRef.current,
+				{
+					xPercent: -100,
+					scaleX: 0.8,
+					opacity: 0,
+					duration: 0.7,
+					ease: "power3.inOut",
+				},
+				0.1,
+			).to(
+				sectionRightRef.current,
+				{
+					xPercent: 100,
+					scaleX: 0.8,
+					opacity: 0,
+					duration: 0.7,
+					ease: "power3.inOut",
+				},
+				0.1,
 			);
 
-			timeline
-				.to(
-					sectionLeftRef.current,
-					{
-						scaleX: 0,
-						x: "-100%",
-						opacity: 0,
-						duration: 0.8,
-						ease: "power3.inOut",
-					},
-					0.2,
-				)
-				.to(
-					sectionRightRef.current,
-					{
-						scaleX: 0,
-						x: "100%",
-						opacity: 0,
-						duration: 0.8,
-						ease: "power3.inOut",
-					},
-					0.2,
-				);
+			tl.set(preloaderRef.current, { pointerEvents: "none" }).set(
+				preloaderRef.current,
+				{ display: "none" },
+			);
 
-			timeline.to(preloaderRef.current, { pointerEvents: "none" }, ">-0.5");
 			return;
 		}
 
-		gsap.set(sectionLeftRef.current, { scaleX: 1 });
-		gsap.set(sectionRightRef.current, { scaleX: 1 });
+		gsap.set(sectionLeftRef.current, {
+			xPercent: 0,
+			scaleX: 1,
+			opacity: 1,
+		});
+		gsap.set(sectionRightRef.current, {
+			xPercent: 0,
+			scaleX: 1,
+			opacity: 1,
+		});
 
-		// Spinner rotation animation
 		gsap.to(spinnerRef.current, {
 			rotation: 360,
 			duration: 2,
@@ -69,50 +92,45 @@ export function LoadingState({
 			ease: "linear",
 		});
 
-		// Character animation
 		charactersRef.current.forEach((char, index) => {
 			const tl = gsap.timeline({ repeat: -1, delay: index * 0.15 });
+
 			tl.fromTo(
 				char,
 				{ opacity: 0, rotationY: -90, transformOrigin: "50% 50% -20px" },
 				{ opacity: 1, rotationY: 0, duration: 0.6, ease: "back.out" },
-				0,
 			).to(char, { opacity: 0, rotationY: 90, duration: 0.6 }, 2.4);
 		});
 	}, [isLoading]);
 
-	const characters = text.split("");
-
 	return (
 		<div
 			ref={preloaderRef}
-			id="preloader"
 			className={`fixed inset-0 z-50 flex items-center justify-center ${
 				isLoading ? "opacity-100" : "opacity-0 pointer-events-none"
 			}`}
 		>
 			<div
 				ref={containerRef}
-				className="container-preloader relative flex h-full w-full items-center justify-center bg-black"
+				className="relative flex h-full w-full items-center justify-center bg-black"
 			>
-				<div className="animation-preloader absolute z-10">
+				<div className="absolute z-10">
 					<div
 						ref={spinnerRef}
-						className="mx-auto mb-14 h-36 w-36 border-[10px] border-white border-t-amber-500 rounded-full"
+						className="mx-auto mb-14 h-36 w-36 rounded-full border-[10px] border-white border-t-black"
 					/>
 
-					<div className="txt-loading select-none text-center font-bold text-5xl md:text-8xl tracking-wider">
-						{characters.map((char, index) => (
+					<div className="select-none text-center text-5xl font-heading tracking-wider md:text-8xl">
+						{characters.map((item, i) => (
 							<span
-								key={index}
+								key={item.id}
 								ref={(el) => {
-									if (el) charactersRef.current[index] = el;
+									if (el) charactersRef.current[i] = el;
 								}}
-								data-text={char}
-								className="characters relative inline-block text-white"
+								className="inline-block text-white"
 								style={{ perspective: "1000px" }}
 							>
-								{char}
+								{item.value}
 							</span>
 						))}
 					</div>
@@ -120,17 +138,14 @@ export function LoadingState({
 
 				<div
 					ref={sectionLeftRef}
-					className="loader-section fixed left-0 top-0 h-full w-1/2 bg-black"
-					style={{ transformOrigin: "100% 50%", 监测: "transform, opacity" }}
+					className="fixed left-0 top-0 h-full w-1/2 bg-black"
+					style={{ transformOrigin: "100% 50%" }}
 				/>
 
 				<div
 					ref={sectionRightRef}
-					className="loader-section fixed right-0 top-0 h-full w-1/2 bg-black"
-					style={{
-						transformOrigin: "0% 50%",
-						willChange: "transform, opacity",
-					}}
+					className="fixed right-0 top-0 h-full w-1/2 bg-black"
+					style={{ transformOrigin: "0% 50%" }}
 				/>
 			</div>
 		</div>

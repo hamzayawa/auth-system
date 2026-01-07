@@ -1,75 +1,106 @@
 "use client";
 
-import type React from "react";
-import { useId, useState } from "react";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useState } from "react";
 
 interface AnimatedInputProps {
-	id?: string;
-	name: string;
+	id: string;
 	type: string;
 	label: string;
 	value: string;
-	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-	onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+
+	onChange?: (value: string) => void; // ✅ OPTIONAL
+	onBlur?: () => void;
+
+	error?: string;
+	required?: boolean;
+	disabled?: boolean;
+
+	showToggle?: boolean;
+	showPassword?: boolean;
+	onTogglePassword?: () => void;
 }
 
-export default function AnimatedInput({
+export function AnimatedInput({
 	id,
-	name,
 	type,
 	label,
 	value,
 	onChange,
 	onBlur,
+	error,
+	required,
+	disabled,
+	showToggle,
+	showPassword,
+	onTogglePassword,
 }: AnimatedInputProps) {
-	const generatedId = useId();
-	const inputId = id ?? generatedId;
-
 	const [isFocused, setIsFocused] = useState(false);
-	const isLabelFloated = isFocused || value.length > 0;
 
-	const labelLetters = label.split("").map((letter, i) => {
-		const key = `${inputId}-${letter}-${i}`;
+	const handleFocus = () => {
+		if (!disabled) setIsFocused(true);
+	};
 
-		return (
-			<span
-				key={key}
-				style={{
-					display: "inline-block",
-					transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-					transitionDelay: isLabelFloated ? `${i * 0.05}s` : "0s",
-					transform: isLabelFloated
-						? "translateY(-20px) scale(0.85)"
-						: "translateY(0) scale(1)",
-				}}
-			>
-				{letter === " " ? "\u00A0" : letter}
-			</span>
-		);
-	});
+	const handleBlur = () => {
+		if (!disabled) {
+			setIsFocused(false);
+			onBlur?.();
+		}
+	};
+
+	const isActive = isFocused || value.trim() !== "" || Boolean(disabled);
 
 	return (
-		<div className="relative pt-6">
+		<div className="form-control font-aeonik relative">
 			<input
-				id={inputId}
+				id={id}
 				type={type}
-				name={name}
 				value={value}
-				onChange={onChange}
-				onBlur={(e) => {
-					setIsFocused(false);
-					onBlur?.(e);
-				}}
-				onFocus={() => setIsFocused(true)}
-				className="peer w-full bg-transparent px-0 py-2 text-foreground outline-none border-b-2 border-border transition-colors duration-300 hover:border-primary/50 focus:border-primary placeholder-transparent"
-				placeholder={label}
+				disabled={disabled}
+				required={required}
+				onChange={(e) => onChange?.(e.target.value)}
+				onFocus={handleFocus}
+				onBlur={handleBlur}
+				className={`animated-input ${
+					disabled ? "opacity-60 cursor-not-allowed" : ""
+				}`}
+				autoComplete={type === "password" ? "new-password" : "off"}
+				autoCorrect="off"
+				autoCapitalize="none"
+				spellCheck={false}
 			/>
+
 			<label
-				htmlFor={inputId}
-				className="absolute left-0 top-6 text-muted-foreground text-sm font-medium"
+				htmlFor={id}
+				className={`animated-label ${
+					isActive ? "active" : ""
+				} ${disabled ? "text-muted-foreground" : ""}`}
 			>
-				{labelLetters}
+				{label.split("").map((char, index) => (
+					<span
+						key={`${index}-${char}`}
+						style={{ transitionDelay: `${index * 50}ms` }}
+					>
+						{char === " " ? "\u00A0" : char}
+					</span>
+				))}
 			</label>
+
+			{showToggle && value.trim() !== "" && !disabled && (
+				<button
+					type="button"
+					className="show-hide-btn"
+					onClick={onTogglePassword}
+				>
+					{showPassword ? (
+						<EyeOffIcon className="w-4 h-4" />
+					) : (
+						<EyeIcon className="w-4 h-4" />
+					)}
+				</button>
+			)}
+
+			{error && !disabled && <span className="error-feedback">{error}</span>}
 		</div>
 	);
 }

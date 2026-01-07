@@ -1,91 +1,96 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod";
 import { Button } from "@/components/ui/button";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { LoadingSpinner } from "@/components/auth/loading-spinner";
+import { AnimatedInput } from "@/components/auth/animated-input";
 import { authClient } from "@/lib/auth/auth-client";
-import AnimatedInput from "../../login/_components/animated-input";
-import { SpinnerCustom } from "@/components/ui/spinner";
-
-const backupCodeSchema = z.object({
-	code: z.string().min(1),
-});
-
-type BackupCodeForm = z.infer<typeof backupCodeSchema>;
 
 export function BackupCodeTab() {
-	const router = useRouter();
-	const form = useForm<BackupCodeForm>({
-		resolver: zodResolver(backupCodeSchema),
-		defaultValues: {
-			code: "",
-		},
-	});
+  const router = useRouter();
 
-	const { isSubmitting } = form.formState;
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-	async function handleBackupCodeVerification(data: BackupCodeForm) {
-		await authClient.twoFactor.verifyBackupCode(data, {
-			onError: (error) => {
-				toast.error(error.error.message || "Failed to verify code");
-			},
-			onSuccess: () => {
-				router.push("/");
-			},
-		});
-	}
+  /* ----------------------------- validation ----------------------------- */
+  const validateCode = () =>
+    code.trim().length > 0 ? undefined : "Backup code is required.";
 
-	return (
-		<Form {...form}>
-			<form
-				className="space-y-4"
-				onSubmit={form.handleSubmit(handleBackupCodeVerification)}
-			>
-				<FormField
-					control={form.control}
-					name="code"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Backup Code</FormLabel>
-							<FormControl>
-								<AnimatedInput
-									{...field}
-									name="code"
-									type="text"
-									label="Backup Code"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+  const handleBlur = () => {
+    setError(validateCode() ?? null);
+  };
 
-				<Button
-					type="submit"
-					disabled={isSubmitting}
-					className="w-full flex items-center justify-center gap-2"
-				>
-					{isSubmitting ? (
-						<>
-							<SpinnerCustom />
-							<span>Verifying...</span>
-						</>
-					) : (
-						"Verify"
-					)}
-				</Button>
-			</form>
-		</Form>
-	);
+  const isFormValid = code.trim().length > 0 && !error;
+
+  /* ----------------------------- submit ----------------------------- */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isFormValid) {
+      setError(validateCode() ?? null);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await authClient.twoFactor.verifyBackupCode(
+        { code: code.trim() },
+        {
+          onError: (err) => {
+            toast.error(err.error?.message || "Failed to verify code");
+          },
+          onSuccess: () => {
+            toast.success("Backup code verified successfully");
+            router.push("/dashboard");
+          },
+        },
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
+    }
+
+    setIsSubmitting(false);
+  };
+
+  /* ----------------------------- UI ----------------------------- */
+  return (
+    <div className="w-full max-w-lg">
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border p-8 font-manrope">
+        <h1 className="text-3xl font-aeonik mb-6 text-center">
+          Use Backup Code
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <AnimatedInput
+            id="backup-code"
+            type="text"
+            label="Backup Code"
+            value={code}
+            onChange={setCode}
+            onBlur={handleBlur}
+            error={error || undefined}
+            required
+          />
+
+          <Button
+            type="submit"
+            disabled={!isFormValid || isSubmitting}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 rounded-full flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <LoadingSpinner className="mr-2" />
+                Verifying...
+              </>
+            ) : (
+              "Verify"
+            )}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
 }

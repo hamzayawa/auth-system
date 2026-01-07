@@ -14,7 +14,7 @@ export function NumberInput({
 			{...props}
 			onChange={(e) => {
 				const number = e.target.valueAsNumber;
-				onChange(isNaN(number) ? null : number);
+				onChange(Number.isNaN(number) ? null : number);
 			}}
 			value={value ?? ""}
 			type="number"

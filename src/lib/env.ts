@@ -10,7 +10,7 @@ export const env = createEnv({
 			.enum(["development", "test", "production"])
 			.default("development"),
 
-		PASSWORD_MIN_LENGTH: z.coerce.number().min(1),
+		PASSWORD_MIN_LENGTH: z.coerce.number().min(8),
 
 		GOOGLE_CLIENT_ID: z.string(),
 		GOOGLE_CLIENT_SECRET: z.string(),
@@ -35,10 +35,15 @@ export const env = createEnv({
 		FLW_SECRET_KEY: z.string(),
 		FLW_ENCRYPTION_KEY: z.string(),
 		FLW_WEBHOOK_HASH: z.string(),
+
+		// Cloudinary
+		CLOUDINARY_API_KEY: z.string(),
+		CLOUDINARY_API_SECRET: z.string(),
 	},
 
 	client: {
 		NEXT_PUBLIC_APP_URL: z.string().url(),
+		NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string(),
 	},
 
 	runtimeEnv: {
@@ -75,6 +80,12 @@ export const env = createEnv({
 		FLW_ENCRYPTION_KEY: process.env.FLW_ENCRYPTION_KEY,
 		FLW_WEBHOOK_HASH: process.env.FLW_WEBHOOK_HASH,
 
+		// Cloudinary
+		CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+		CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+
 		NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+		NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:
+			process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
 	},
 });

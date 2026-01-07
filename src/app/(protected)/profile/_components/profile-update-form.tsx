@@ -1,151 +1,245 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { ArrowRight, Camera } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
+
+import { AnimatedInput } from "@/components/auth/animated-input";
+import { LoadingSpinner } from "@/components/auth/loading-spinner";
 import { Button } from "@/components/ui/button";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
-import AnimatedInput from "@/components/auth/animated-input";
 import { authClient } from "@/lib/auth/auth-client";
-import { SpinnerCustom } from "@/components/ui/spinner";
-import { useId } from "react";
 
-const profileUpdateSchema = z.object({
-	name: z.string().min(1),
-	email: z.email().min(1),
-	favoriteNumber: z.number().int(),
-});
+/* ------------------------------------------------------------------ */
+/* Constants */
+/* ------------------------------------------------------------------ */
+const MAX_IMAGE_SIZE_MB = 2;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-type ProfileUpdateForm = z.infer<typeof profileUpdateSchema>;
+/* ------------------------------------------------------------------ */
+/* Types */
+/* ------------------------------------------------------------------ */
+interface ProfileFormData {
+	name: string;
+}
 
-export function ProfileUpdateForm({
+interface ValidationErrors {
+	name?: string;
+	image?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Component */
+/* ------------------------------------------------------------------ */
+export default function ProfileUpdateForm({
 	user,
 }: {
 	user: {
-		email: string;
 		name: string;
+		email: string;
+		image?: string | null;
 	};
 }) {
 	const router = useRouter();
-	const form = useForm<ProfileUpdateForm>({
-		resolver: zodResolver(profileUpdateSchema),
-		defaultValues: {
-			name: user.name,
-			email: user.email,
-		},
+
+	const [formData, setFormData] = useState<ProfileFormData>({
+		name: user.name,
 	});
 
-	const { isSubmitting } = form.formState;
+	const [profileImage, setProfileImage] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(
+		user.image ?? null,
+	);
 
-	const nameId = useId();
-	const emailId = useId();
+	const [errors, setErrors] = useState<ValidationErrors>({});
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	async function handleProfileUpdate(data: ProfileUpdateForm) {
-		const promises = [
-			authClient.updateUser({
-				name: data.name,
-				favoriteNumber: data.favoriteNumber,
-			}),
-		];
+	/* ----------------------------- handlers ----------------------------- */
+	const handleNameChange = (value: string) => {
+		setFormData({ name: value });
+		if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
+	};
 
-		if (data.email !== user.email) {
-			promises.push(
-				authClient.changeEmail({
-					newEmail: data.email,
-					callbackURL: "/profile",
-				}),
-			);
+	const handleImageChange = (file: File | null) => {
+		if (!file) return;
+
+		if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+			setErrors((e) => ({
+				...e,
+				image: "Only JPG, PNG or WEBP images are allowed.",
+			}));
+			return;
 		}
 
-		const res = await Promise.all(promises);
+		if (file.size > MAX_IMAGE_SIZE_BYTES) {
+			setErrors((e) => ({
+				...e,
+				image: `Image must be less than ${MAX_IMAGE_SIZE_MB}MB.`,
+			}));
+			return;
+		}
 
-		const updateUserResult = res[0];
-		const emailResult = res[1] ?? { error: false };
+		setErrors((e) => ({ ...e, image: undefined }));
+		setProfileImage(file);
+		setPreviewUrl(URL.createObjectURL(file));
+	};
 
-		if (updateUserResult.error) {
-			toast.error(updateUserResult.error.message || "Failed to update profile");
-		} else if (emailResult.error) {
-			toast.error(emailResult.error.message || "Failed to change email");
-		} else {
-			if (data.email !== user.email) {
-				toast.success("Verify your new email address to complete the change.");
+	/* ----------------------------- validation ----------------------------- */
+	const validateName = () =>
+		formData.name.trim() ? undefined : "Name is required.";
+
+	// ✅ Check if any changes happened compared to original
+	const hasChanges =
+		formData.name.trim() !== user.name || profileImage !== null;
+
+	const isFormValid =
+		formData.name.trim() &&
+		Object.values(errors).every((e) => !e) &&
+		hasChanges;
+
+	/* ----------------------------- submit ----------------------------- */
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!isFormValid) return;
+
+		setIsSubmitting(true);
+
+		try {
+			let imageUrl = user.image ?? undefined;
+
+			if (profileImage) {
+				imageUrl = await uploadProfileImage(profileImage);
+			}
+
+			const res = await authClient.updateUser({
+				name: formData.name,
+				image: imageUrl,
+			});
+
+			if (res.error) {
+				toast.error(res.error.message || "Failed to update profile");
 			} else {
 				toast.success("Profile updated successfully");
+				router.refresh();
+				setProfileImage(null); // reset image change after success
 			}
-			router.refresh();
+		} catch (err: any) {
+			toast.error(err.message || "Something went wrong");
 		}
+
+		setIsSubmitting(false);
+	};
+
+	/* ----------------------------- UI ----------------------------- */
+	return (
+		<motion.div
+			className="w-full max-w-lg"
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.6 }}
+		>
+			<div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border p-8">
+				<div className="text-center mb-8">
+					<h1 className="text-3xl font-semibold">Update Profile</h1>
+				</div>
+
+				<form onSubmit={handleSubmit} className="space-y-6">
+					{/* Avatar */}
+					<div className="flex flex-col items-center gap-3">
+						<div className="relative size-28 rounded-full overflow-hidden border">
+							<Image
+								src={previewUrl || "/avatar-placeholder.png"}
+								alt="Profile picture"
+								fill
+								className="object-cover"
+							/>
+
+							<label className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center cursor-pointer transition">
+								<Camera className="text-white" />
+								<input
+									type="file"
+									accept="image/*"
+									className="hidden"
+									onChange={(e) =>
+										handleImageChange(e.target.files?.[0] ?? null)
+									}
+								/>
+							</label>
+						</div>
+
+						<p className="text-xs text-muted-foreground">
+							JPG, PNG or WEBP • Max {MAX_IMAGE_SIZE_MB}MB
+						</p>
+
+						{errors.image && (
+							<p className="text-sm text-destructive">{errors.image}</p>
+						)}
+					</div>
+
+					{/* Name */}
+					<AnimatedInput
+						id="name"
+						type="text"
+						label="Name"
+						value={formData.name}
+						onChange={handleNameChange}
+						onBlur={() => setErrors((e) => ({ ...e, name: validateName() }))}
+						error={errors.name}
+						required
+					/>
+
+					{/* Email (locked) */}
+					<AnimatedInput
+						id="email"
+						type="email"
+						label="Email"
+						value={user.email}
+						disabled
+					/>
+
+					<Button
+						type="submit"
+						disabled={isSubmitting || !isFormValid}
+						className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-full"
+					>
+						{isSubmitting ? (
+							<>
+								<LoadingSpinner className="mr-2" />
+								Updating...
+							</>
+						) : (
+							<>
+								Update Profile
+								<ArrowRight className="ml-2 size-5" />
+							</>
+						)}
+					</Button>
+				</form>
+			</div>
+		</motion.div>
+	);
+}
+
+/* ------------------------------------------------------------------ */
+/* Local upload helper */
+/* ------------------------------------------------------------------ */
+async function uploadProfileImage(file: File): Promise<string> {
+	const formData = new FormData();
+	formData.append("file", file);
+
+	const res = await fetch("/api/upload/avatar", {
+		method: "POST",
+		body: formData,
+	});
+
+	if (!res.ok) {
+		const error = await res.json();
+		throw new Error(error.error || "Image upload failed");
 	}
 
-	return (
-		<Form {...form}>
-			<form
-				className="space-y-4"
-				onSubmit={form.handleSubmit(handleProfileUpdate)}
-			>
-				<FormField
-					control={form.control}
-					name="name"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel htmlFor={nameId}>Name</FormLabel>
-							<FormControl>
-								<AnimatedInput
-									{...field}
-									id={nameId}
-									name="name"
-									type="text"
-									label="Name"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
-					name="email"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel htmlFor={emailId}>Email</FormLabel>
-							<FormControl>
-								<AnimatedInput
-									{...field}
-									id={emailId}
-									name="email"
-									type="email"
-									label="Email"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<Button
-					type="submit"
-					disabled={isSubmitting}
-					className="w-full flex items-center justify-center gap-2"
-				>
-					{isSubmitting ? (
-						<>
-							<SpinnerCustom />
-							<span>Updating...</span>
-						</>
-					) : (
-						"Update Profile"
-					)}
-				</Button>
-			</form>
-		</Form>
-	);
+	const data = await res.json();
+	return data.url; // Cloudinary URL
 }

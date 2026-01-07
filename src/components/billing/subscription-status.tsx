@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -40,21 +41,18 @@ type Subscription = {
 
 type SubscriptionStatusProps = {
 	subscription: Subscription;
-	onCancelled?: () => void;
 };
 
-export function SubscriptionStatus({
-	subscription,
-	onCancelled,
-}: SubscriptionStatusProps) {
+export function SubscriptionStatus({ subscription }: SubscriptionStatusProps) {
+	const router = useRouter();
 	const { cancelSubscription, loading, error } = useCancelSubscription();
 	const planDetails = getPlanByName(subscription.plan);
 	const features = PLAN_FEATURES[subscription.plan] || [];
 
 	const handleCancel = async () => {
 		const success = await cancelSubscription(subscription.referenceId);
-		if (success && onCancelled) {
-			onCancelled();
+		if (success) {
+			router.refresh();
 		}
 	};
 
@@ -129,9 +127,9 @@ export function SubscriptionStatus({
 				<div className="space-y-2">
 					<p className="text-sm font-medium">Included features:</p>
 					<ul className="space-y-1">
-						{features.map((feature, index) => (
+						{features.map((feature) => (
 							<li
-								key={index}
+								key={feature}
 								className="flex items-center gap-2 text-sm text-muted-foreground"
 							>
 								<CheckCircle className="h-3 w-3 text-primary" />

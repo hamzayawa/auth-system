@@ -1,243 +1,296 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
-import z from "zod";
+
+import { AnimatedInput } from "@/components/auth/animated-input";
+import { LoadingSpinner } from "@/components/auth/loading-spinner";
 import { Button } from "@/components/ui/button";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
 import { authClient } from "@/lib/auth/auth-client";
-import AnimatedInput from "@/components/auth/animated-input";
-import { SpinnerCustom } from "@/components/ui/spinner";
-import { useId } from "react";
 
-const twoFactorAuthSchema = z.object({
-	password: z.string().min(1),
-});
+/* ------------------------------------------------------------------ */
+/* Types */
+/* ------------------------------------------------------------------ */
 
-type TwoFactorAuthForm = z.infer<typeof twoFactorAuthSchema>;
-type TwoFactorData = {
+interface TwoFactorData {
 	totpURI: string;
 	backupCodes: string[];
-};
+}
+
+interface Errors {
+	password?: string;
+	token?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Main Component */
+/* ------------------------------------------------------------------ */
 
 export function TwoFactorAuth({ isEnabled }: { isEnabled: boolean }) {
+	const router = useRouter();
+
+	const [password, setPassword] = useState("");
+	const [errors, setErrors] = useState<Errors>({});
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [twoFactorData, setTwoFactorData] = useState<TwoFactorData | null>(
 		null,
 	);
-	const router = useRouter();
-	const form = useForm<TwoFactorAuthForm>({
-		resolver: zodResolver(twoFactorAuthSchema),
-		defaultValues: { password: "" },
-	});
+	const [showPassword, setShowPassword] = useState(false);
 
-	const { isSubmitting } = form.formState;
-	const passwordId = useId();
+	/* ----------------------- validation ----------------------- */
 
-	async function handleDisableTwoFactorAuth(data: TwoFactorAuthForm) {
-		await authClient.twoFactor.disable(
-			{
-				password: data.password,
-			},
-			{
-				onError: (error) => {
-					toast.error(error.error.message || "Failed to disable 2FA");
+	const validatePassword = () =>
+		password.length > 0 ? undefined : "Password is required.";
+
+	const handlePasswordBlur = () => {
+		setErrors((e) => ({ ...e, password: validatePassword() }));
+	};
+
+	const isFormValid = password && !errors.password;
+
+	/* ----------------------- submit ----------------------- */
+
+	async function handleSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		if (!isFormValid) return;
+
+		setIsSubmitting(true);
+
+		if (isEnabled) {
+			await authClient.twoFactor.disable(
+				{ password },
+				{
+					onError: (error) => {
+						toast.error(error.error.message || "Failed to disable 2FA");
+					},
+					onSuccess: () => {
+						toast.success("Two-factor authentication disabled");
+						setPassword("");
+						router.refresh();
+					},
 				},
-				onSuccess: () => {
-					form.reset();
-					router.refresh();
-				},
-			},
-		);
-	}
+			);
+		} else {
+			const result = await authClient.twoFactor.enable({ password });
 
-	async function handleEnableTwoFactorAuth(data: TwoFactorAuthForm) {
-		const result = await authClient.twoFactor.enable({
-			password: data.password,
-		});
-
-		if (result.error) {
-			toast.error(result.error.message || "Failed to enable 2FA");
+			if (result.error) {
+				toast.error(result.error.message || "Failed to enable 2FA");
+			} else {
+				setTwoFactorData(result.data);
+				setPassword("");
+			}
 		}
-		setTwoFactorData(result.data);
-		form.reset();
+
+		setIsSubmitting(false);
 	}
 
-	if (twoFactorData != null) {
+	if (twoFactorData) {
 		return (
-			<QRCodeVerify
-				{...twoFactorData}
-				onDone={() => {
-					setTwoFactorData(null);
-				}}
-			/>
+			<QRCodeVerify {...twoFactorData} onDone={() => setTwoFactorData(null)} />
 		);
 	}
+
+	/* ----------------------- UI ----------------------- */
 
 	return (
-		<Form {...form}>
-			<form
-				className="space-y-4"
-				onSubmit={form.handleSubmit(
-					isEnabled ? handleDisableTwoFactorAuth : handleEnableTwoFactorAuth,
-				)}
-			>
-				<FormField
-					control={form.control}
-					name="password"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel htmlFor={passwordId}>Password</FormLabel>
-							<FormControl>
-								<AnimatedInput
-									{...field}
-									id={passwordId}
-									name="password"
-									type="password"
-									label="Password"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+		<motion.div
+			className="w-full max-w-lg"
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.8 }}
+		>
+			<div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border p-8 font-manrope">
+				<div className="relative z-10">
+					<div className="text-center mb-8 font-satoshi">
+						<h1 className="text-3xl font-aeonik mb-2">
+							Two-Factor Authentication
+						</h1>
+						<p className="text-muted-foreground text-sm">
+							{isEnabled
+								? "Disable extra account security"
+								: "Add an extra layer of protection"}
+						</p>
+					</div>
 
-				<Button
-					type="submit"
-					disabled={isSubmitting}
-					className="w-full flex items-center justify-center gap-2"
-					variant={isEnabled ? "destructive" : "default"}
-				>
-					{isSubmitting ? (
-						<>
-							<SpinnerCustom />
-							<span>{isEnabled ? "Disabling 2FA..." : "Enabling 2FA..."}</span>
-						</>
-					) : isEnabled ? (
-						"Disable 2FA"
-					) : (
-						"Enable 2FA"
-					)}
-				</Button>
-			</form>
-		</Form>
+					<form
+						noValidate
+						onSubmit={handleSubmit}
+						className="space-y-6 font-aeonik"
+					>
+						<AnimatedInput
+							id="password"
+							type={showPassword ? "text" : "password"}
+							label="Password"
+							value={password}
+							onChange={setPassword}
+							onBlur={handlePasswordBlur}
+							error={errors.password}
+							showToggle
+							showPassword={showPassword}
+							onTogglePassword={() => setShowPassword(!showPassword)}
+							required
+						/>
+
+						<Button
+							type="submit"
+							disabled={isSubmitting || !isFormValid}
+							className={`w-full px-8 py-4 text-lg rounded-full shadow-xl transition-all ${
+								isEnabled
+									? "bg-red-600 hover:bg-red-700"
+									: "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+							}`}
+						>
+							{isSubmitting ? (
+								<>
+									<LoadingSpinner className="mr-2" />
+									{isEnabled ? "Disabling..." : "Enabling..."}
+								</>
+							) : (
+								<>
+									{isEnabled ? "Disable 2FA" : "Enable 2FA"}
+									<ArrowRight className="ml-2 w-5 h-5" />
+								</>
+							)}
+						</Button>
+					</form>
+				</div>
+			</div>
+		</motion.div>
 	);
 }
 
-const qrSchema = z.object({
-	token: z.string().length(6),
-});
-
-type QrForm = z.infer<typeof qrSchema>;
+/* ------------------------------------------------------------------ */
+/* QR CODE VERIFICATION */
+/* ------------------------------------------------------------------ */
 
 function QRCodeVerify({
 	totpURI,
 	backupCodes,
 	onDone,
 }: TwoFactorData & { onDone: () => void }) {
-	const [successfullyEnabled, setSuccessfullyEnabled] = useState(false);
 	const router = useRouter();
-	const form = useForm<QrForm>({
-		resolver: zodResolver(qrSchema),
-		defaultValues: { token: "" },
-	});
 
-	const { isSubmitting } = form.formState;
+	const [token, setToken] = useState("");
+	const [errors, setErrors] = useState<Errors>({});
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [enabled, setEnabled] = useState(false);
 
-	async function handleQrCode(data: QrForm) {
+	const validateToken = () =>
+		token.length === 6 ? undefined : "Enter a 6-digit code.";
+
+	const handleTokenBlur = () => {
+		setErrors((e) => ({ ...e, token: validateToken() }));
+	};
+
+	const isFormValid = token && !errors.token;
+
+	async function handleVerify(e: React.FormEvent) {
+		e.preventDefault();
+		if (!isFormValid) return;
+
+		setIsSubmitting(true);
+
 		await authClient.twoFactor.verifyTotp(
-			{
-				code: data.token,
-			},
+			{ code: token },
 			{
 				onError: (error) => {
-					toast.error(error.error.message || "Failed to verify code");
+					toast.error(error.error.message || "Invalid code");
 				},
 				onSuccess: () => {
-					setSuccessfullyEnabled(true);
+					toast.success("Two-factor authentication enabled");
+					setEnabled(true);
 					router.refresh();
 				},
 			},
 		);
+
+		setIsSubmitting(false);
 	}
 
-	if (successfullyEnabled) {
+	if (enabled) {
 		return (
-			<>
-				<p className="text-sm text-muted-foreground mb-2">
-					Save these backup codes in a safe place. You can use them to access
-					your account.
-				</p>
-				<div className="grid grid-cols-2 gap-2 mb-4">
-					{backupCodes.map((code) => (
-						<div key={code} className="font-mono text-sm">
-							{code}
-						</div>
-					))}
+			<motion.div
+				className="w-full max-w-lg"
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+			>
+				<div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border p-8">
+					<h2 className="text-xl font-aeonik mb-4">Backup Codes</h2>
+
+					<p className="text-sm text-muted-foreground mb-4">
+						Save these codes somewhere safe. Each code can be used once.
+					</p>
+
+					<div className="grid grid-cols-2 gap-2 mb-6">
+						{backupCodes.map((code) => (
+							<div
+								key={code}
+								className="font-mono text-sm bg-muted rounded-md px-3 py-2"
+							>
+								{code}
+							</div>
+						))}
+					</div>
+
+					<Button className="w-full" onClick={onDone}>
+						Done
+					</Button>
 				</div>
-				<Button variant="outline" onClick={onDone}>
-					Done
-				</Button>
-			</>
+			</motion.div>
 		);
 	}
 
 	return (
-		<div className="space-y-4">
-			<p className="text-muted-foreground">
-				Scan this QR code with your authenticator app and enter the code below:
-			</p>
+		<motion.div
+			className="w-full max-w-lg"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+		>
+			<div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border p-8 space-y-6">
+				<p className="text-muted-foreground text-sm">
+					Scan the QR code with your authenticator app and enter the 6-digit
+					code.
+				</p>
 
-			<Form {...form}>
-				<form className="space-y-4" onSubmit={form.handleSubmit(handleQrCode)}>
-					<FormField
-						control={form.control}
-						name="token"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Code</FormLabel>
-								<FormControl>
-									<AnimatedInput
-										{...field}
-										name="token"
-										type="text"
-										label="Code"
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
+				<div className="p-4 bg-white rounded-xl w-fit mx-auto">
+					<QRCode size={200} value={totpURI} />
+				</div>
+
+				<form onSubmit={handleVerify} className="space-y-6">
+					<AnimatedInput
+						id="token"
+						type="text"
+						label="Authentication Code"
+						value={token}
+						onChange={setToken}
+						onBlur={handleTokenBlur}
+						error={errors.token}
+						required
 					/>
 
 					<Button
 						type="submit"
-						disabled={isSubmitting}
-						className="w-full flex items-center justify-center gap-2"
+						disabled={isSubmitting || !isFormValid}
+						className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-8 py-4 text-lg rounded-full shadow-xl"
 					>
 						{isSubmitting ? (
 							<>
-								<SpinnerCustom />
-								<span>Submitting...</span>
+								<LoadingSpinner className="mr-2" />
+								Verifying...
 							</>
 						) : (
-							"Submit Code"
+							<>
+								Verify Code
+								<ArrowRight className="ml-2 w-5 h-5" />
+							</>
 						)}
 					</Button>
 				</form>
-			</Form>
-			<div className="p-4 bg-white w-fit">
-				<QRCode size={256} value={totpURI} />
 			</div>
-		</div>
+		</motion.div>
 	);
 }

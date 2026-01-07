@@ -1,119 +1,225 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import type React from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormMessage,
-} from "@/components/ui/form";
-import AnimatedInput from "@/components/auth/animated-input";
-import { authClient } from "@/lib/auth/auth-client";
+import { AnimatedInput } from "@/components/auth/animated-input";
+import { LoadingSpinner } from "@/components/auth/loading-spinner";
+import { PasswordStrength } from "@/components/auth/password-strength";
 import { Button } from "@/components/ui/button";
-import { SpinnerCustom } from "@/components/ui/spinner";
-import { useId } from "react";
+import { authClient } from "@/lib/auth/auth-client";
 
-const changePasswordSchema = z.object({
-	currentPassword: z.string().min(1),
-	newPassword: z.string().min(6),
-	revokeOtherSessions: z.boolean(),
-});
+/* ------------------------------------------------------------------ */
+/* Types */
+/* ------------------------------------------------------------------ */
 
-type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
+interface FormData {
+	currentPassword: string;
+	newPassword: string;
+	confirmPassword: string;
+	revokeOtherSessions: boolean;
+}
+
+interface Errors {
+	currentPassword?: string;
+	newPassword?: string;
+	confirmPassword?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Component */
+/* ------------------------------------------------------------------ */
 
 export function ChangePasswordForm() {
-	const form = useForm<ChangePasswordForm>({
-		resolver: zodResolver(changePasswordSchema),
-		defaultValues: {
-			currentPassword: "",
-			newPassword: "",
-			revokeOtherSessions: true,
-		},
+	const [formData, setFormData] = useState<FormData>({
+		currentPassword: "",
+		newPassword: "",
+		confirmPassword: "",
+		revokeOtherSessions: true,
 	});
 
-	const { isSubmitting } = form.formState;
+	const [errors, setErrors] = useState<Errors>({});
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	// Generate unique IDs
-	const currentPasswordId = useId();
-	const newPasswordId = useId();
+	const [currentPassword, setCurrentPassword] = useState(false);
+	const [showNewPassword, setShowNewPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-	async function handlePasswordChange(data: ChangePasswordForm) {
-		await authClient.changePassword(data, {
-			onError: (error) => {
-				toast.error(error.error.message || "Failed to change password");
+	/* ----------------------- handlers ----------------------- */
+
+	const handleChange = (field: keyof FormData, value: string) => {
+		setFormData((prev) => ({ ...prev, [field]: value }));
+
+		// Clear error on change
+		if (errors[field as keyof Errors]) {
+			setErrors((e) => ({ ...e, [field]: undefined }));
+		}
+	};
+
+	/* ----------------------- validation ----------------------- */
+
+	const validateCurrentPassword = () =>
+		formData.currentPassword ? undefined : "Current password is required.";
+
+	const validateNewPassword = () =>
+		formData.newPassword.length >= 8
+			? undefined
+			: "Password must be at least 8 characters.";
+
+	const validateConfirmPassword = () =>
+		formData.confirmPassword === formData.newPassword
+			? undefined
+			: "Passwords do not match.";
+
+	const handleBlur = (field: keyof Errors) => {
+		let error: string | undefined;
+
+		switch (field) {
+			case "currentPassword":
+				error = validateCurrentPassword();
+				break;
+			case "newPassword":
+				error = validateNewPassword();
+				break;
+			case "confirmPassword":
+				error = validateConfirmPassword();
+				break;
+		}
+
+		setErrors((e) => ({ ...e, [field]: error }));
+	};
+
+	const isFormValid =
+		formData.currentPassword &&
+		formData.newPassword &&
+		formData.confirmPassword &&
+		Object.values(errors).every((e) => e === undefined) &&
+		formData.newPassword === formData.confirmPassword;
+
+	/* ----------------------- submit ----------------------- */
+
+	async function handleSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		if (!isFormValid) return;
+
+		setIsSubmitting(true);
+
+		await authClient.changePassword(
+			{
+				currentPassword: formData.currentPassword,
+				newPassword: formData.newPassword,
+				revokeOtherSessions: formData.revokeOtherSessions,
 			},
-			onSuccess: () => {
-				toast.success("Password changed successfully");
-				form.reset();
+			{
+				onError: (error) => {
+					toast.error(error.error.message || "Failed to change password");
+				},
+				onSuccess: () => {
+					toast.success("Password changed successfully");
+					setFormData({
+						currentPassword: "",
+						newPassword: "",
+						confirmPassword: "",
+						revokeOtherSessions: true,
+					});
+				},
 			},
-		});
+		);
+
+		setIsSubmitting(false);
 	}
 
+	/* ----------------------- UI ----------------------- */
+
 	return (
-		<Form {...form}>
-			<form
-				className="space-y-4"
-				onSubmit={form.handleSubmit(handlePasswordChange)}
-			>
-				<FormField
-					control={form.control}
-					name="currentPassword"
-					render={({ field }) => (
-						<FormItem>
-							<FormControl>
-								<AnimatedInput
-									{...field}
-									id={currentPasswordId}
-									name="currentPassword"
-									type="password"
-									label="Current Password"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+		<motion.div
+			className="w-full max-w-lg"
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.8 }}
+		>
+			<div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border p-8 font-manrope">
+				<div className="relative z-10">
+					<div className="text-center mb-8 font-satoshi">
+						<h1 className="text-3xl font-aeonik mb-2">Change Password</h1>
+						<p className="text-sm text-muted-foreground">
+							Use a strong password you don’t reuse elsewhere
+						</p>
+					</div>
 
-				<FormField
-					control={form.control}
-					name="newPassword"
-					render={({ field }) => (
-						<FormItem>
-							<FormControl>
-								<AnimatedInput
-									{...field}
-									id={newPasswordId}
-									name="newPassword"
-									type="password"
-									label="New Password"
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<div className="pt-2">
-					<Button
-						type="submit"
-						disabled={isSubmitting}
-						className="w-full flex items-center justify-center gap-2"
+					<form
+						noValidate
+						onSubmit={handleSubmit}
+						className="space-y-6 font-aeonik"
 					>
-						{isSubmitting ? (
-							<>
-								<SpinnerCustom />
-								<span>Changing password...</span>
-							</>
-						) : (
-							"Change Password"
-						)}
-					</Button>
+						<AnimatedInput
+							id="currentPassword"
+							type={currentPassword ? "text" : "password"}
+							label="Current Password"
+							value={formData.currentPassword}
+							onChange={(val) => handleChange("currentPassword", val)}
+							onBlur={() => handleBlur("currentPassword")}
+							error={errors.currentPassword}
+							showToggle
+							showPassword={currentPassword}
+							onTogglePassword={() => setCurrentPassword(!currentPassword)}
+							required
+						/>
+
+						<AnimatedInput
+							id="newPassword"
+							type={showNewPassword ? "text" : "password"}
+							label="New Password"
+							value={formData.newPassword}
+							onChange={(val) => handleChange("newPassword", val)}
+							onBlur={() => handleBlur("newPassword")}
+							error={errors.newPassword}
+							showToggle
+							showPassword={showNewPassword}
+							onTogglePassword={() => setShowNewPassword(!showNewPassword)}
+							required
+						/>
+
+						<PasswordStrength password={formData.newPassword} />
+
+						<AnimatedInput
+							id="confirmPassword"
+							type={showConfirmPassword ? "text" : "password"}
+							label="Confirm Password"
+							value={formData.confirmPassword}
+							onChange={(val) => handleChange("confirmPassword", val)}
+							onBlur={() => handleBlur("confirmPassword")}
+							error={errors.confirmPassword}
+							showToggle
+							showPassword={showConfirmPassword}
+							onTogglePassword={() =>
+								setShowConfirmPassword(!showConfirmPassword)
+							}
+							required
+						/>
+
+						<Button
+							type="submit"
+							disabled={isSubmitting || !isFormValid}
+							className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg rounded-full shadow-xl transition-all"
+						>
+							{isSubmitting ? (
+								<>
+									<LoadingSpinner className="mr-2" />
+									Changing...
+								</>
+							) : (
+								<>
+									Change Password
+									<ArrowRight className="ml-2 w-5 h-5" />
+								</>
+							)}
+						</Button>
+					</form>
 				</div>
-			</form>
-		</Form>
+			</div>
+		</motion.div>
 	);
 }

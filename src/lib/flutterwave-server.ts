@@ -3,10 +3,11 @@ import Flutterwave from "flutterwave-node-v3";
 import { nanoid } from "nanoid";
 import { db } from "@/drizzle/db";
 import { subscription, user } from "@/drizzle/schema";
+import { env } from "@/lib/env";
 import { getPlanByName } from "./flutterwave";
 
-const FLW_PUBLIC_KEY = process.env.FLW_PUBLIC_KEY!;
-const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY!;
+const FLW_PUBLIC_KEY = env.FLW_PUBLIC_KEY;
+const FLW_SECRET_KEY = env.FLW_SECRET_KEY;
 
 // Initialize Flutterwave SDK
 const flw = new Flutterwave(FLW_PUBLIC_KEY, FLW_SECRET_KEY);
@@ -71,7 +72,7 @@ export async function initializePayment(
 ): Promise<FlutterwaveResponse> {
 	const response = await flw.Charge.card({
 		...payload,
-		enckey: process.env.FLW_ENCRYPTION_KEY,
+		enckey: env.FLW_ENCRYPTION_KEY,
 	});
 	return response;
 }

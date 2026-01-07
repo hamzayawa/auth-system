@@ -1,3 +1,4 @@
+import "server-only";
 // src/lib/emails/env.ts
 import { env } from "../env";
 

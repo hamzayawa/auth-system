@@ -13,7 +13,7 @@ type BillingPageProps = {
 	referenceId: string; // Usually organization ID or user ID
 };
 
-export function BillingPage({ userId, referenceId }: BillingPageProps) {
+export function BillingPage({ referenceId }: BillingPageProps) {
 	const searchParams = useSearchParams();
 	const { subscription, isLoading, refresh } = useSubscription(referenceId);
 	const [showAlert, setShowAlert] = useState<"success" | "error" | null>(null);
