@@ -23,7 +23,7 @@ export const user = pgTable("user", {
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
 	twoFactorEnabled: boolean("two_factor_enabled").default(false),
-	role: text("role"),
+	role: text("role").default("user"),
 	banned: boolean("banned").default(false),
 	banReason: text("ban_reason"),
 	banExpires: timestamp("ban_expires"),

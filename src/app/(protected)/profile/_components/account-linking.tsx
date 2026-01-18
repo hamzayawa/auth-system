@@ -1,6 +1,5 @@
 "use client";
 
-import { router } from "better-auth/api";
 import { Plus, Shield, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BetterAuthActionButton } from "@/components/auth/better-auth-action-button";

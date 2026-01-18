@@ -1,20 +1,20 @@
 import { sendEmail } from "./send-email";
 
 interface SendOtpEmailData {
-  user: {
-    name?: string | null;
-    email: string;
-  };
-  otp: string;
+	user: {
+		name?: string | null;
+		email: string;
+	};
+	otp: string;
 }
 
 export async function sendOtpEmail({ user, otp }: SendOtpEmailData) {
-  const name = user.name ?? "there";
+	const name = user.name ?? "there";
 
-  await sendEmail({
-    to: user.email,
-    subject: "Your security code",
-    html: `
+	await sendEmail({
+		to: user.email,
+		subject: "Your security code",
+		html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Your Security Code</h2>
         <p>Hello ${name},</p>
@@ -39,7 +39,7 @@ export async function sendOtpEmail({ user, otp }: SendOtpEmailData) {
         </p>
       </div>
     `,
-    text: `
+		text: `
 Hello ${name},
 
 Your security code is:
@@ -53,5 +53,5 @@ If you didn’t request this, please ignore this email.
 Best regards,
 Your App Team
     `,
-  });
+	});
 }

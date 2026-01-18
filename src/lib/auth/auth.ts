@@ -2,227 +2,177 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-// import { passkey } from "better-auth/plugins/passkey"
 import { admin as adminPlugin } from "better-auth/plugins/admin";
 import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { desc, eq } from "drizzle-orm";
-import { ac, admin, user } from "@/components/auth/permissions";
+
 import { db } from "@/drizzle/db";
 import { member } from "@/drizzle/schema";
-// import { stripe } from "@better-auth/stripe"
-// import Stripe from "stripe"
-// import { STRIPE_PLANS } from "./stripe"
 import { hashPassword, verifyPassword } from "@/lib/argon2";
 import { env } from "@/lib/env";
+import { ac as permissionsAc, roles } from "@/lib/rbac/admin-roles";
+import { validatePassword } from "@/lib/validation";
 import { sendDeleteAccountVerificationEmail } from "../emails/delete-account-verification";
 import { sendEmailVerificationEmail } from "../emails/email-verification";
 import { sendOrganizationInviteEmail } from "../emails/organization-invite-email";
 import { sendPasswordResetEmail } from "../emails/password-reset-email";
-import { sendWelcomeEmail } from "../emails/welcome-email";
 import { sendOtpEmail } from "../emails/send-otp";
-
-// const stripeClient = new Stripe(env.STRIPE_SECRET_KEY, {
-//   apiVersion: "2025-08-27.basil",
-// })
+import { sendWelcomeEmail } from "../emails/welcome-email";
 
 export const auth = betterAuth({
-  appName: "Better Auth Demo",
-  user: {
-    changeEmail: {
-      enabled: true,
-      sendChangeEmailVerification: async ({ user, url, newEmail }) => {
-        await sendEmailVerificationEmail({
-          user: { ...user, email: newEmail },
-          url,
-        });
-      },
-    },
-    deleteUser: {
-      enabled: true,
-      sendDeleteAccountVerification: async ({ user, url }) => {
-        await sendDeleteAccountVerificationEmail({ user, url });
-      },
-    },
-    additionalFields: {
-      favoriteNumber: {
-        type: "number",
-        required: false,
-      },
-    },
-  },
-  emailAndPassword: {
-    enabled: true,
-    password: {
-      hash: hashPassword,
-      verify: verifyPassword,
-    },
-    passwordValidation: {
-      // minLength: Number(env.PASSWORD_MIN_LENGTH || "8"),
-      // Custom validator function for password requirements
-      validator: (password: string) => {
-        const minLength = password.length >= 8;
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumber = /[0-9]/.test(password);
-        const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(
-          password,
-        );
-        const noWhitespace = !/^\s|\s$/.test(password);
+	appName: "Better Auth Demo",
+	// Make sure this matches your app URL (e.g. http://localhost:3000 in dev)
+	baseURL: env.BETTER_AUTH_URL,
 
-        const errors = [];
+	// Core role names stored on the user (e.g. user.role)
+	roles: {
+		superadmin: {},
+		admin: {},
+		user: {},
+		tailwindcss: {},
+	},
 
-        if (!minLength)
-          errors.push("Password must be at least 8 characters long");
-        if (!hasUpperCase)
-          errors.push("Password must contain at least one uppercase letter");
-        if (!hasLowerCase)
-          errors.push("Password must contain at least one lowercase letter");
-        if (!hasNumber)
-          errors.push("Password must contain at least one number");
-        if (!hasSpecialChar)
-          errors.push("Password must contain at least one special character");
-        if (!noWhitespace)
-          errors.push("Password must not have leading or trailing whitespace");
+	user: {
+		changeEmail: {
+			enabled: true,
+			sendChangeEmailVerification: async ({ user, url, newEmail }) => {
+				await sendEmailVerificationEmail({
+					user: { ...user, email: newEmail },
+					url,
+				});
+			},
+		},
+		deleteUser: {
+			enabled: true,
+			sendDeleteAccountVerification: async ({ user, url }) => {
+				await sendDeleteAccountVerificationEmail({ user, url });
+			},
+		},
+	},
 
-        return errors.length === 0 ? true : errors;
-      },
-    },
-    requireEmailVerification: true,
-    sendResetPassword: async ({ user, url }) => {
-      await sendPasswordResetEmail({ user, url });
-    },
-  },
-  emailVerification: {
-    autoSignInAfterVerification: true,
-    sendOnSignUp: true,
-    sendVerificationEmail: async ({ user, url }) => {
-      await sendEmailVerificationEmail({ user, url });
-    },
-  },
-  socialProviders: {
-    github: {
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET,
-      mapProfileToUser: (profile) => {
-        return {
-          favoriteNumber: Number(profile.public_repos) || 0,
-        };
-      },
-    },
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      mapProfileToUser: () => {
-        return {
-          favoriteNumber: 0,
-        };
-      },
-    },
-  },
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 60, // 1 minute
-    },
-  },
-  plugins: [
-    nextCookies(),
-    twoFactor({
-      otpOptions: {
-        async sendOTP({ user, otp }) {
-          await sendOtpEmail({
-            user,
-            otp, // include OTP in email
-          });
-        },
-      },
-    }),
-    adminPlugin({
-      ac,
-      roles: {
-        admin,
-        user,
-      },
-    }),
-    organization({
-      sendInvitationEmail: async ({
-        email,
-        organization,
-        inviter,
-        invitation,
-      }) => {
-        await sendOrganizationInviteEmail({
-          invitation,
-          inviter: inviter.user,
-          organization,
-          email,
-        });
-      },
-    }),
-    // stripe({
-    //   // stripeClient,
-    //   stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,
-    //   createCustomerOnSignUp: true,
-    //   subscription: {
-    //     authorizeReference: async ({ user, referenceId, action }) => {
-    //       const memberItem = await db.query.member.findFirst({
-    //         where: and(
-    //           eq(member.organizationId, referenceId),
-    //           eq(member.userId, user.id)
-    //         ),
-    //       })
+	emailAndPassword: {
+		enabled: true,
+		password: {
+			hash: hashPassword,
+			verify: verifyPassword,
+		},
+		passwordValidation: {
+			validator: (password: string) => {
+				const error = validatePassword(password);
+				return error ? [error] : true;
+			},
+		},
+		// Require verification before email+password login
+		requireEmailVerification: true,
+		sendResetPassword: async ({ user, url }) => {
+			await sendPasswordResetEmail({ user, url });
+		},
+	},
 
-    //       if (
-    //         action === "upgrade-subscription" ||
-    //         action === "cancel-subscription" ||
-    //         action === "restore-subscription"
-    //       ) {
-    //         return memberItem?.role === "owner"
-    //       }
+	emailVerification: {
+		// After clicking verification link, automatically create a session
+		autoSignInAfterVerification: true,
+		sendOnSignUp: true,
+		sendVerificationEmail: async ({ user, url }) => {
+			await sendEmailVerificationEmail({ user, url });
+		},
+	},
 
-    //       return memberItem != null
-    //     },
-    //     enabled: true,
-    //     plans: STRIPE_PLANS,
-    //   },
-    // }),
-  ],
-  database: drizzleAdapter(db, {
-    provider: "pg",
-  }),
-  hooks: {
-    after: createAuthMiddleware(async (ctx) => {
-      if (ctx.path.startsWith("/sign-up")) {
-        const user = ctx.context.newSession?.user ?? {
-          name: ctx.body.name,
-          email: ctx.body.email,
-        };
+	socialProviders: {
+		github: {
+			clientId: env.GITHUB_CLIENT_ID,
+			clientSecret: env.GITHUB_CLIENT_SECRET,
+			mapProfileToUser: () => ({}),
+		},
+		google: {
+			clientId: env.GOOGLE_CLIENT_ID,
+			clientSecret: env.GOOGLE_CLIENT_SECRET,
+			mapProfileToUser: () => ({}),
+		},
+	},
 
-        if (user != null) {
-          await sendWelcomeEmail(user);
-        }
-      }
-    }),
-  },
-  databaseHooks: {
-    session: {
-      create: {
-        before: async (userSession) => {
-          const membership = await db.query.member.findFirst({
-            where: eq(member.userId, userSession.userId),
-            orderBy: desc(member.createdAt),
-            columns: { organizationId: true },
-          });
+	session: {
+		// Cookie cache improves performance for get-session calls in App Router.[web:50]
+		cookieCache: { enabled: true, maxAge: 60 },
+		// Optional: uncomment if you want a custom cookie name
+		// cookieName: "better-auth.session",
+	},
 
-          return {
-            data: {
-              ...userSession,
-              activeOrganizationId: membership?.organizationId,
-            },
-          };
-        },
-      },
-    },
-  },
+	plugins: [
+		// Required for Next.js to read/write cookies correctly.[web:46]
+		nextCookies(),
+
+		twoFactor({
+			otpOptions: {
+				async sendOTP({ user, otp }) {
+					await sendOtpEmail({ user, otp });
+				},
+			},
+		}),
+
+		adminPlugin({
+			// Access-control statements + roles defined in admin-roles.ts
+			ac: permissionsAc,
+			roles,
+			defaultRole: "user",
+		}),
+
+		organization({
+			sendInvitationEmail: async ({
+				email,
+				organization,
+				inviter,
+				invitation,
+			}) => {
+				await sendOrganizationInviteEmail({
+					invitation,
+					inviter: inviter.user,
+					organization,
+					email,
+				});
+			},
+		}),
+	],
+
+	// Drizzle adapter, same DB as your other Drizzle code.[web:46]
+	database: drizzleAdapter(db, { provider: "pg" }),
+
+	hooks: {
+		after: createAuthMiddleware(async (ctx) => {
+			// Run ONLY on signup
+			if (!ctx.path.startsWith("/signup")) return;
+
+			const user = ctx.context.newSession?.user ?? {
+				name: ctx.body.name,
+				email: ctx.body.email,
+			};
+
+			if (user) {
+				await sendWelcomeEmail(user);
+			}
+		}),
+	},
+
+	databaseHooks: {
+		session: {
+			create: {
+				before: async (userSession) => {
+					// Attach activeOrganizationId to session based on latest membership
+					const membership = await db.query.member.findFirst({
+						where: eq(member.userId, userSession.userId),
+						orderBy: desc(member.createdAt),
+						columns: { organizationId: true },
+					});
+
+					return {
+						data: {
+							...userSession,
+							activeOrganizationId: membership?.organizationId || null,
+						},
+					};
+				},
+			},
+		},
+	},
 });

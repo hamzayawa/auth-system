@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
+import { requireAuth } from "@/lib/rbac/access-control";
 
 const MAX_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -11,8 +12,9 @@ cloudinary.config({
 	api_secret: env.CLOUDINARY_API_SECRET,
 });
 
-export async function POST(req: Request) {
-	const formData = await req.formData();
+export async function POST(request: NextRequest) {
+	await requireAuth(request);
+	const formData = await request.formData();
 	const file = formData.get("file") as File | null;
 
 	if (!file) {

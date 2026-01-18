@@ -1,14 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AnimatedInput } from "@/components/auth/animated-input";
+import { LoadingSpinner } from "@/components/auth/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import {
@@ -17,7 +17,6 @@ import {
 	validatePasswordWithStrength,
 } from "@/lib/validation";
 import ValidationFeedback from "../../(auth)/_components/validation-feedback";
-import { LoadingSpinner } from "@/components/auth/loading-spinner";
 
 interface FormData {
 	password: string;
@@ -103,7 +102,7 @@ export default function ResetPasswordPage() {
 						description: "Redirecting to login...",
 					});
 					setTimeout(() => {
-						router.push("/");
+						router.push("/dashboard");
 					}, 1000);
 				},
 			},
@@ -127,7 +126,7 @@ export default function ResetPasswordPage() {
 					</div>
 
 					<Button asChild className="w-full">
-						<Link href="/">Back to Login</Link>
+						<Link href="/dashboard">Back to Login</Link>
 					</Button>
 				</div>
 			</main>
@@ -292,7 +291,7 @@ export default function ResetPasswordPage() {
 					<p className="mt-6 text-center text-sm text-muted-foreground">
 						Remember your password?{" "}
 						<Link
-							href="/"
+							href="/dashboard"
 							className="font-semibold text-primary hover:text-primary/80 transition-colors"
 						>
 							Sign in

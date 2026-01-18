@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AnimatedInput } from "@/components/auth/animated-input";
 import { LoadingSpinner } from "@/components/auth/loading-spinner";
@@ -46,16 +46,15 @@ export default function SignUpForm({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-	const [, setIsLoading] = useState(true);
 
-	// Initial loading animation
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			setIsLoading(false);
-		}, 5000);
+	// // Initial loading animation
+	// useEffect(() => {
+	// 	const timer = setTimeout(() => {
+	// 		setIsLoading(false);
+	// 	}, 4000);
 
-		return () => clearTimeout(timer);
-	}, []);
+	// 	return () => clearTimeout(timer);
+	// }, []);
 	useClearForm(setFormData, initialFormData);
 
 	const handleInputChange = (field: keyof FormData, value: string) => {

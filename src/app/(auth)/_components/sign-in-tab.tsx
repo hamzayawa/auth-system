@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -11,8 +10,10 @@ import { AnimatedInput } from "@/components/auth/animated-input";
 import { LoadingSpinner } from "@/components/auth/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
-import { SocialAuthButtons } from "./social-auth-buttons";
+import { validateEmail, validateSignInPassword } from "@/lib/validation";
 import { ForgotPasswordForm } from "./forgot-password";
+import { SocialAuthButtons } from "./social-auth-buttons";
+import { useRouter } from "next/navigation";
 
 interface FormData {
   email: string;
@@ -21,8 +22,8 @@ interface FormData {
 }
 
 interface ValidationErrors {
-  email?: string;
-  password?: string;
+  email?: string | null;
+  password?: string | null;
 }
 
 const initialFormData: FormData = {
@@ -36,12 +37,11 @@ export default function SignInForm({
 }: {
   openEmailVerificationTab: (email: string) => void;
 }) {
-  const router = useRouter();
-
   const [activeView, setActiveView] = useState<"signin" | "forgot-password">(
     "signin",
   );
 
+  const router = useRouter();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,52 +62,22 @@ export default function SignInForm({
 
   /* ----------------------------- handlers ----------------------------- */
 
-  const handleEmailChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, email: value }));
-    if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
-  };
-
-  const handlePasswordChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, password: value }));
-    if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
-  };
-
-  const validateEmail = (): string | undefined =>
-    /\S+@\S+\.\S+/.test(formData.email.trim())
-      ? undefined
-      : "Please enter a valid email address.";
-
-  const validatePassword = (): string | undefined =>
-    formData.password.length >= 8
-      ? undefined
-      : "Password must be at least 8 characters.";
-
-  // const handleEmailBlur = () => {
-  //   setErrors((prev) => ({ ...prev, email: validateEmail() }));
-  // };
-
-  // const handlePasswordBlur = () => {
-  //   setErrors((prev) => ({ ...prev, password: validatePassword() }));
-  // };
-
   const isFormValid =
-    formData.email &&
-    formData.password &&
-    !validateEmail() &&
-    !validatePassword();
+    !!formData.email &&
+    !!formData.password &&
+    validateEmail(formData.email) === null &&
+    validateSignInPassword(formData.password) === null;
+
   /* ----------------------------- submit ----------------------------- */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const emailError = validateEmail();
-    const passwordError = validatePassword();
+    const emailError = validateEmail(formData.email);
+    const passwordError = validateSignInPassword(formData.password);
 
     if (emailError || passwordError) {
-      setErrors({
-        email: emailError,
-        password: passwordError,
-      });
+      setErrors({ email: emailError, password: passwordError });
       return;
     }
 
@@ -121,21 +91,30 @@ export default function SignInForm({
           callbackURL: "/dashboard",
         },
         {
-          onError: (error) => {
-            if (error.error.code === "EMAIL_NOT_VERIFIED") {
-              openEmailVerificationTab(formData.email);
+          onError: (err) => {
+            // ✅ TypeScript-safe 2FA check (per Better Auth docs)
+            if (
+              "twoFactorRedirect" in err ||
+              err.error?.code === "TwoFactorRequired"
+            ) {
+              // Better Auth will auto-redirect to /2fa via your authClient config
+              console.log("🔐 2FA required - auto-redirecting to /2fa");
+              return; // Let redirect happen, don't show error
             }
 
-            toast.error(error.error.message || "Failed to sign in");
+            if (err.error?.code === "EMAIL_NOT_VERIFIED") {
+              openEmailVerificationTab(formData.email);
+            } else {
+              toast.error(err.error?.message || "Failed to sign in");
+            }
           },
-          onSuccess: () => {
+          onSuccess: async () => {
             if (formData.rememberMe) {
               localStorage.setItem("rememberedEmail", formData.email);
             } else {
               localStorage.removeItem("rememberedEmail");
             }
-
-            router.push("/dashboard");
+            router.refresh();
           },
         },
       );
@@ -181,10 +160,10 @@ export default function SignInForm({
                 onBlur={() =>
                   setErrors((e) => ({
                     ...e,
-                    email: validateEmail(),
+                    email: validateEmail(formData.email),
                   }))
                 }
-                error={errors.email}
+                error={errors.email ?? undefined}
                 required
               />
             </motion.div>
@@ -203,10 +182,10 @@ export default function SignInForm({
                 onBlur={() =>
                   setErrors((e) => ({
                     ...e,
-                    password: validatePassword(),
+                    password: validateSignInPassword(formData.password),
                   }))
                 }
-                error={errors.password}
+                error={errors.password ?? undefined}
                 showToggle
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword((v) => !v)}
@@ -251,6 +230,8 @@ export default function SignInForm({
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.2 }}

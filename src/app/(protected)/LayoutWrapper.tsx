@@ -1,36 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTheme } from "./dashboard/_components/providers/theme-provider";
-import { Header } from "./dashboard/_components/layout/header";
-import { HorizontalNav } from "./dashboard/_components/layout/horizontal-nav";
-import { Sidebar } from "./dashboard/_components/layout/sidebar";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import type React from "react";
+import { Header } from "./_components/layout/header";
+import { HorizontalNav } from "./_components/layout/horizontal-nav";
+import { Sidebar } from "./_components/layout/sidebar";
+import { useTheme } from "./_components/providers/theme-provider";
 
-export function LayoutWrapper({ children }: { children: React.ReactNode }) {
+interface LayoutWrapperProps {
+	children: React.ReactNode;
+}
+
+export function LayoutWrapper({ children }: LayoutWrapperProps) {
 	const { theme } = useTheme();
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
-
-	if (!mounted) {
-		// 👈 SSR: Always render horizontal layout (most common)
-		return (
-			<div className="relative flex min-h-screen flex-col">
-				<header className="flex h-16 items-center border-b px-4" />
-				<div className="border-b px-4 py-2" />
-				<main className="flex-1 p-4">{children}</main>
-			</div>
-		);
-	}
 
 	return (
 		<>
 			{theme.layout === "horizontal" ? (
 				<div className="relative flex min-h-screen flex-col">
-					<Header showMenu={false} />
+					<Header />
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -54,7 +42,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 					</main>
 				</div>
 			) : (
-				<div className="relative flex min-h-screen flex-col lg:flex-row">
+				<div className="relative flex min-h-screen">
 					<div className="hidden lg:block">
 						<Sidebar />
 					</div>

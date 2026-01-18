@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Camera } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { AnimatedInput } from "@/components/auth/animated-input";
@@ -149,7 +149,14 @@ export default function ProfileUpdateForm({
 				<form onSubmit={handleSubmit} className="space-y-6">
 					{/* Avatar */}
 					<div className="flex flex-col items-center gap-3">
-						<div className="relative size-28 rounded-full overflow-hidden border">
+						<motion.div
+							className="relative size-28 rounded-full overflow-hidden border"
+							initial={{ opacity: 0, scale: 0.9 }}
+							animate={{ opacity: 1, scale: 1 }}
+							whileHover={{ scale: 1.05 }}
+							transition={{ type: "spring", stiffness: 300, damping: 20 }}
+							key={previewUrl} // re-animate when image changes
+						>
 							<Image
 								src={previewUrl || "/avatar-placeholder.png"}
 								alt="Profile picture"
@@ -168,7 +175,7 @@ export default function ProfileUpdateForm({
 									}
 								/>
 							</label>
-						</div>
+						</motion.div>
 
 						<p className="text-xs text-muted-foreground">
 							JPG, PNG or WEBP • Max {MAX_IMAGE_SIZE_MB}MB
@@ -180,43 +187,73 @@ export default function ProfileUpdateForm({
 					</div>
 
 					{/* Name */}
-					<AnimatedInput
-						id="name"
-						type="text"
-						label="Name"
-						value={formData.name}
-						onChange={handleNameChange}
-						onBlur={() => setErrors((e) => ({ ...e, name: validateName() }))}
-						error={errors.name}
-						required
-					/>
+					<motion.div
+						initial={{ opacity: 0, x: -20 }}
+						animate={{ opacity: 1, x: 0 }}
+						transition={{ duration: 0.6, delay: 0.3 }}
+					>
+						<AnimatedInput
+							id="name"
+							type="text"
+							label="Name"
+							value={formData.name}
+							onChange={handleNameChange}
+							onBlur={() => setErrors((e) => ({ ...e, name: validateName() }))}
+							error={errors.name}
+							required
+						/>
+					</motion.div>
 
 					{/* Email (locked) */}
-					<AnimatedInput
-						id="email"
-						type="email"
-						label="Email"
-						value={user.email}
-						disabled
-					/>
-
-					<Button
-						type="submit"
-						disabled={isSubmitting || !isFormValid}
-						className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-full"
+					<motion.div
+						initial={{ opacity: 0, x: -20 }}
+						animate={{ opacity: 1, x: 0 }}
+						transition={{ duration: 0.6, delay: 0.3 }}
 					>
-						{isSubmitting ? (
-							<>
-								<LoadingSpinner className="mr-2" />
-								Updating...
-							</>
-						) : (
-							<>
-								Update Profile
-								<ArrowRight className="ml-2 size-5" />
-							</>
-						)}
-					</Button>
+						<AnimatedInput
+							id="email"
+							type="email"
+							label="Email"
+							value={user.email}
+							disabled
+						/>
+					</motion.div>
+
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.6, delay: 0.9 }}
+					>
+						<motion.div
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
+							transition={{ type: "spring", stiffness: 400, damping: 10 }}
+						>
+							<Button
+								type="submit"
+								disabled={isSubmitting || !isFormValid}
+								className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-full"
+							>
+								{isSubmitting ? (
+									<>
+										<LoadingSpinner
+											size={20}
+											barWidth={2}
+											barLength={5}
+											numBars={12}
+											className="mr-2"
+										/>
+										Updating...
+									</>
+								) : (
+									<>
+										Update Profile
+										<ArrowRight className="ml-2 size-5" />
+									</>
+								)}
+							</Button>
+						</motion.div>
+					</motion.div>
 				</form>
 			</div>
 		</motion.div>

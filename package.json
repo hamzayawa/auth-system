@@ -11,6 +11,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"db:push": "drizzle-kit push",
+		"seed:rbac": "tsx src/scripts/seed-rbac.ts",
 		"auth:generate": "npx @better-auth/cli@latest generate --config ./src/lib/auth/auth.ts --output ./src/drizzle/schemas/new-auth-schema.ts --yes",
 		"lint": "eslint",
 		"lint-format": "biome check --write"
@@ -73,6 +74,7 @@
 		"next-cloudinary": "^6.17.5",
 		"next-themes": "^0.4.6",
 		"pg": "^8.16.3",
+		"postgres": "^3.4.8",
 		"postmark": "^4.0.5",
 		"react": "19.2.3",
 		"react-day-picker": "9.8.0",

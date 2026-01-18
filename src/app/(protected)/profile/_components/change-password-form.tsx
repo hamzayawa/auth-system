@@ -154,69 +154,111 @@ export function ChangePasswordForm() {
 						onSubmit={handleSubmit}
 						className="space-y-6 font-aeonik"
 					>
-						<AnimatedInput
-							id="currentPassword"
-							type={currentPassword ? "text" : "password"}
-							label="Current Password"
-							value={formData.currentPassword}
-							onChange={(val) => handleChange("currentPassword", val)}
-							onBlur={() => handleBlur("currentPassword")}
-							error={errors.currentPassword}
-							showToggle
-							showPassword={currentPassword}
-							onTogglePassword={() => setCurrentPassword(!currentPassword)}
-							required
-						/>
-
-						<AnimatedInput
-							id="newPassword"
-							type={showNewPassword ? "text" : "password"}
-							label="New Password"
-							value={formData.newPassword}
-							onChange={(val) => handleChange("newPassword", val)}
-							onBlur={() => handleBlur("newPassword")}
-							error={errors.newPassword}
-							showToggle
-							showPassword={showNewPassword}
-							onTogglePassword={() => setShowNewPassword(!showNewPassword)}
-							required
-						/>
-
-						<PasswordStrength password={formData.newPassword} />
-
-						<AnimatedInput
-							id="confirmPassword"
-							type={showConfirmPassword ? "text" : "password"}
-							label="Confirm Password"
-							value={formData.confirmPassword}
-							onChange={(val) => handleChange("confirmPassword", val)}
-							onBlur={() => handleBlur("confirmPassword")}
-							error={errors.confirmPassword}
-							showToggle
-							showPassword={showConfirmPassword}
-							onTogglePassword={() =>
-								setShowConfirmPassword(!showConfirmPassword)
-							}
-							required
-						/>
-
-						<Button
-							type="submit"
-							disabled={isSubmitting || !isFormValid}
-							className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg rounded-full shadow-xl transition-all"
+						<motion.div
+							initial={{ opacity: 0, x: -20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ duration: 0.6, delay: 0.3 }}
 						>
-							{isSubmitting ? (
-								<>
-									<LoadingSpinner className="mr-2" />
-									Changing...
-								</>
-							) : (
-								<>
-									Change Password
-									<ArrowRight className="ml-2 w-5 h-5" />
-								</>
-							)}
-						</Button>
+							<AnimatedInput
+								id="currentPassword"
+								type={currentPassword ? "text" : "password"}
+								label="Current Password"
+								value={formData.currentPassword}
+								onChange={(val) => handleChange("currentPassword", val)}
+								onBlur={() => handleBlur("currentPassword")}
+								error={errors.currentPassword}
+								showToggle
+								showPassword={currentPassword}
+								onTogglePassword={() => setCurrentPassword(!currentPassword)}
+								required
+							/>
+						</motion.div>
+
+						<motion.div
+							initial={{ opacity: 0, x: -20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ duration: 0.6, delay: 0.4 }}
+						>
+							<AnimatedInput
+								id="newPassword"
+								type={showNewPassword ? "text" : "password"}
+								label="New Password"
+								value={formData.newPassword}
+								onChange={(val) => handleChange("newPassword", val)}
+								onBlur={() => handleBlur("newPassword")}
+								error={errors.newPassword}
+								showToggle
+								showPassword={showNewPassword}
+								onTogglePassword={() => setShowNewPassword(!showNewPassword)}
+								required
+							/>
+						</motion.div>
+
+						<motion.div
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.4, delay: 0.7 }}
+						>
+							<PasswordStrength password={formData.newPassword} />
+						</motion.div>
+
+						<motion.div
+							initial={{ opacity: 0, x: -20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ duration: 0.6, delay: 0.4 }}
+						>
+							<AnimatedInput
+								id="confirmPassword"
+								type={showConfirmPassword ? "text" : "password"}
+								label="Confirm Password"
+								value={formData.confirmPassword}
+								onChange={(val) => handleChange("confirmPassword", val)}
+								onBlur={() => handleBlur("confirmPassword")}
+								error={errors.confirmPassword}
+								showToggle
+								showPassword={showConfirmPassword}
+								onTogglePassword={() =>
+									setShowConfirmPassword(!showConfirmPassword)
+								}
+								required
+							/>
+						</motion.div>
+
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.6, delay: 0.9 }}
+						>
+							<motion.div
+								whileHover={{ scale: 1.02 }}
+								whileTap={{ scale: 0.98 }}
+								transition={{ type: "spring", stiffness: 400, damping: 10 }}
+							>
+								<Button
+									type="submit"
+									disabled={isSubmitting || !isFormValid}
+									className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg rounded-full shadow-xl transition-all"
+								>
+									{isSubmitting ? (
+										<>
+											<LoadingSpinner
+												size={20}
+												barWidth={2}
+												barLength={5}
+												numBars={12}
+												className="mr-2"
+											/>
+											Changing...
+										</>
+									) : (
+										<>
+											Change Password
+											<ArrowRight className="ml-2 w-5 h-5" />
+										</>
+									)}
+								</Button>
+							</motion.div>
+						</motion.div>
 					</form>
 				</div>
 			</div>

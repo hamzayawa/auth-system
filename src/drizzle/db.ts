@@ -1,5 +1,20 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { env } from "@/lib/env";
-import * as schema from "./schema";
+import * as authSchema from "./schemas/auth-schema";
+import * as rbacSchema from "./schemas/rbac-schema";
 
-export const db = drizzle(env.DATABASE_URL, { schema });
+const databaseUrl = env.DATABASE_URL;
+
+if (!databaseUrl) {
+	throw new Error("DATABASE_URL environment variable is not set");
+}
+
+const client = postgres(databaseUrl);
+
+export const db = drizzle(client, {
+	schema: {
+		...authSchema,
+		...rbacSchema,
+	},
+});

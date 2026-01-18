@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
 import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import { AnimatedInput } from "@/components/auth/animated-input";
 import { LoadingSpinner } from "@/components/auth/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
+import { motion } from "framer-motion"; // 👈 ADD THIS
 
 /* ------------------------------------------------------------------ */
 /* Types */
@@ -80,34 +80,58 @@ export function TotpForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-md mx-auto">
-      <AnimatedInput
-        id="totp-code"
-        type="text"
-        label="6-digit code"
-        value={formData.code}
-        onChange={handleChange}
-        onBlur={() => setError(validateCode())}
-        error={error}
-        required
-      />
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <AnimatedInput
+          id="totp-code"
+          type="text"
+          label="6-digit code"
+          value={formData.code}
+          onChange={handleChange}
+          onBlur={() => setError(validateCode())}
+          error={error}
+          required
+        />
+      </motion.div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting || !isFormValid}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg font-body rounded-full shadow-xl transition-all"
-            >
-              {isSubmitting ? (
-                <>
-                  <LoadingSpinner className="mr-2" />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  Verify
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </>
-              )}
-            </Button>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.9 }}
+      >
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+        >
+          <Button
+            type="submit"
+            disabled={isSubmitting || !isFormValid}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg font-body rounded-full shadow-xl transition-all"
+          >
+            {isSubmitting ? (
+              <>
+                <LoadingSpinner
+                  size={20}
+                  barWidth={2}
+                  barLength={5}
+                  numBars={12}
+                  className="mr-2"
+                />
+                Verifying...
+              </>
+            ) : (
+              <>
+                Verify
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </>
+            )}
+          </Button>
+        </motion.div>
+      </motion.div>
     </form>
   );
 }
