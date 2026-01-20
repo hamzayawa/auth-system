@@ -145,7 +145,7 @@ export default function RoleManagement() {
     setFormData({
       name: role.name,
       description: role.description || "",
-      permissionIds: role.permissions.map((p) => p.permission.id), // ✅ Fixed: p.permission.id
+      permissionIds: role.permissions?.map((p) => p.permission.id) || [],
     });
     setIsCreateOpen(true);
   };

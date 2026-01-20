@@ -1,10 +1,11 @@
+// src/drizzle/schemas/auth-schema.ts
 import { createId } from "@paralleldrive/cuid2";
 import {
   boolean,
-  integer,
   pgTable,
   text,
   timestamp,
+  integer,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { nanoId } from "@/drizzle/schemas/types/nanoid";
@@ -22,18 +23,17 @@ export const user = pgTable("user", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .$onUpdate(() => new Date())
     .notNull(),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
-  role: text("role").default("user"),
+  role: text("role").default("user"), // Legacy field for trigger sync
   banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
   flutterwaveCustomerId: text("flutterwave_customer_id"),
-  favoriteNumber: integer("favorite_number"),
 });
 
-export const session = pgTable("session", {
+const session = pgTable("session", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => createId()),
@@ -202,6 +202,10 @@ export const subscription = pgTable("subscription", {
     .$onUpdate(() => new Date()),
 });
 
+// Relations at bottom
 export const userRelations = relations(user, ({ many }) => ({
-  userRoles: many(userRole),
+  userRoles: many(userRole), // Forward ref - drizzle handles this
+  sessions: many(session),
+  accounts: many(account),
+  twoFactor: many(twoFactor),
 }));
