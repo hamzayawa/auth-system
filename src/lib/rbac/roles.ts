@@ -49,9 +49,17 @@ export async function updateRole(
 ) {
   const [updated] = await db
     .update(role)
-    .set({ name, description })
+    .set({
+      name: name.trim(),
+      description: description?.trim(),
+      updatedAt: new Date(), // Update timestamp
+    })
     .where(eq(role.id, roleId))
     .returning();
+
+  if (!updated) {
+    throw new Error("Role not found");
+  }
 
   return updated;
 }
