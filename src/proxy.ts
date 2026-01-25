@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 
 const publicRoutes = [
+  "/",
   "/signin",
   "/signup",
   "/api/auth",
