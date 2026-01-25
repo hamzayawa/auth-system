@@ -29,10 +29,41 @@ export default async function AuthPage({
 
 	if (session) {
 		const roles = session.user.roles;
+		const redirectRoutes = (session.user as any).redirectRoutes || {};
 
-		if (roles.includes("superadmin")) redirect("/superadmin");
-		if (roles.includes("admin")) redirect("/admin");
-		redirect("/dashboard");
+		console.log("🔍 Debug Auth Page:");
+		console.log("Roles:", roles);
+		console.log("Redirect Routes:", redirectRoutes);
+
+		// 1. High-priority hardcoded roles
+		if (roles.includes("superadmin")) {
+			console.log("Redirecting to superadmin");
+			redirect("/superadmin");
+		}
+		if (roles.includes("admin")) {
+			console.log("Redirecting to admin");
+			redirect("/admin");
+		}
+
+		// 2. Dynamic role redirects
+		for (const role of roles) {
+			const route = redirectRoutes[role];
+			console.log(`Checking role: ${role}, route: ${route}`);
+
+			// Ensure we don't redirect to dashboard if another role has a specific route
+			// But since we loop, the first match wins.
+			// Assumption: Order of `roles` array matters or is arbitrary.
+			// If we want specific priority, we'd need to sort roles or have priority field.
+			// For now, first found custom route wins.
+			if (route && route !== "/dashboard/home") {
+				console.log(`Redirecting to custom route: ${route}`);
+				redirect(route);
+			}
+		}
+
+		// 3. Default fallback
+		console.log("Redirecting to default dashboard/home");
+		redirect("/dashboard/home");
 	}
 
 	// ✅ safe tab normalization

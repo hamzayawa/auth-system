@@ -10,6 +10,7 @@ export const role = pgTable("role", {
 		.$defaultFn(() => createId()),
 	name: text("name").notNull().unique(),
 	description: text("description"),
+	redirectRoute: text("redirect_route").default("/dashboard/home").notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

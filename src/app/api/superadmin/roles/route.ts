@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     await requirePermission(request, { role: ["create"] });
 
-    const { name, description, permissionIds } = await request.json();
+    const { name, description, redirectRoute, permissionIds } = await request.json();
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -56,7 +56,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newRole = await createRole(name, description, permissionIds || []);
+    const newRole = await createRole(
+      name,
+      description,
+      redirectRoute,
+      permissionIds || [],
+    );
     return NextResponse.json(newRole, { status: 201 });
   } catch (error: any) {
     if (error.message === "Unauthorized") {
@@ -82,9 +87,15 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     console.log("🔧 PATCH body:", body);
 
-    const { roleId, name, description, permissionIds = [] } = body;
+    const { roleId, name, description, redirectRoute, permissionIds = [] } =
+      body;
 
-    const updatedRole = await updateRole(roleId, name, description);
+    const updatedRole = await updateRole(
+      roleId,
+      name,
+      description,
+      redirectRoute,
+    );
     await assignPermissionsToRole(roleId, permissionIds);
 
     return NextResponse.json(updatedRole);

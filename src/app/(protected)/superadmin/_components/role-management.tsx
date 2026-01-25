@@ -32,6 +32,7 @@ interface Role {
   id: string;
   name: string;
   description?: string;
+  redirectRoute?: string;
   permissions: RolePermission[]; // array of RolePermission, not Permission
 }
 
@@ -46,6 +47,7 @@ export default function RoleManagement() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    redirectRoute: "",
     permissionIds: [] as string[],
   });
 
@@ -117,7 +119,12 @@ export default function RoleManagement() {
         return [...prev, savedRole];
       });
 
-      setFormData({ name: "", description: "", permissionIds: [] });
+      setFormData({
+        name: "",
+        description: "",
+        redirectRoute: "",
+        permissionIds: [],
+      });
       setEditingRoleId(null);
       setIsCreateOpen(false);
       toast.success(
@@ -145,6 +152,7 @@ export default function RoleManagement() {
     setFormData({
       name: role.name,
       description: role.description || "",
+      redirectRoute: role.redirectRoute || "",
       permissionIds: role.permissions?.map((p) => p.permission.id) || [],
     });
     setIsCreateOpen(true);
@@ -229,6 +237,16 @@ export default function RoleManagement() {
                   }))
                 }
               />
+              <Input
+                placeholder="Redirect Route (e.g., /dashboard/hr)"
+                value={formData.redirectRoute}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    redirectRoute: e.target.value,
+                  }))
+                }
+              />
               <div className="space-y-2 max-h-48 overflow-y-auto rounded-lg border p-2">
                 {permissions.map((perm) => (
                   <div key={perm.id} className="flex items-center space-x-2">
@@ -262,6 +280,7 @@ export default function RoleManagement() {
                     setFormData({
                       name: "",
                       description: "",
+                      redirectRoute: "",
                       permissionIds: [],
                     });
                   }}

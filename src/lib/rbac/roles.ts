@@ -10,6 +10,7 @@ import {
 export async function createRole(
   name: string,
   description?: string,
+  redirectRoute?: string,
   permissionIds: string[] = [],
 ) {
   // 1. Check if role exists (handles "Lecturer" gracefully)
@@ -31,6 +32,7 @@ export async function createRole(
     .values({
       name: name.trim(),
       description: description?.trim(),
+      redirectRoute: redirectRoute || "/dashboard/home",
     })
     .returning();
 
@@ -46,12 +48,14 @@ export async function updateRole(
   roleId: string,
   name: string,
   description?: string,
+  redirectRoute?: string,
 ) {
   const [updated] = await db
     .update(role)
     .set({
       name: name.trim(),
       description: description?.trim(),
+      redirectRoute: redirectRoute?.trim(),
       updatedAt: new Date(), // Update timestamp
     })
     .where(eq(role.id, roleId))
@@ -138,7 +142,12 @@ export async function removeRoleFromUser(userId: string, roleId: string) {
 
 export async function getUserRoles(userId: string) {
   return db
-    .select({ id: role.id, name: role.name, description: role.description })
+    .select({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      redirectRoute: role.redirectRoute,
+    })
     .from(role)
     .innerJoin(userRole, eq(userRole.roleId, role.id))
     .where(eq(userRole.userId, userId));

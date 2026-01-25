@@ -15,6 +15,15 @@ export async function getSessionWithRoles(headers: Headers) {
 		user: {
 			...session.user,
 			roles: roles.map((r) => r.name),
+			redirectRoutes: roles.reduce(
+				(acc, role) => {
+					if (role.redirectRoute) {
+						acc[role.name] = role.redirectRoute;
+					}
+					return acc;
+				},
+				{} as Record<string, string>,
+			),
 			permissionObject,
 		},
 	};
